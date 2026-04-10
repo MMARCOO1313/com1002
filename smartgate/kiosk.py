@@ -1,7 +1,8 @@
 """
 SmartGate — Face Recognition Kiosk
 On-site self-service terminal for walk-in registration and queue joining.
-Uses MediaPipe (faster, better M2 support) + face_recognition for embedding.
+Uses DeepFace (FaceNet) as primary backend — best compatibility with Apple M2.
+MediaPipe provides real-time face detection overlay on the camera feed.
 
 Run:  python kiosk.py --api http://localhost:8000
 """
@@ -19,20 +20,29 @@ import time
 from pathlib import Path
 from PIL import Image, ImageTk
 
+# ─── Face recognition backend ────────────────────────────────────────────────
+# DeepFace wraps FaceNet/ArcFace with a clean API and works on Apple Silicon
+# without the dlib/cmake architecture issues.  pip install deepface
 try:
-    import face_recognition
-    FACE_LIB = "face_recognition"
+    from deepface import DeepFace
+    FACE_LIB    = "deepface"
+    DEEPFACE_MODEL   = "Facenet"    # 128-d embeddings; fast, accurate, small
+    DEEPFACE_BACKEND = "opencv"     # fast detector, good M2 support
+    print("[SmartGate] Using DeepFace (FaceNet + OpenCV detector) for face recognition")
 except ImportError:
-    FACE_LIB = None
-    print("[SmartGate] face_recognition not found — using MediaPipe fallback")
+    FACE_LIB    = None
+    DEEPFACE_MODEL   = None
+    DEEPFACE_BACKEND = None
+    print("[SmartGate] DeepFace not found — run: pip install deepface")
 
+# MediaPipe: real-time bounding-box overlay only (does NOT store embeddings)
 try:
     import mediapipe as mp
     mp_face_detection = mp.solutions.face_detection
     MEDIAPIPE_OK = True
 except ImportError:
     MEDIAPIPE_OK = False
-    print("[SmartGate] MediaPipe not found — basic OpenCV face detection will be used")
+    print("[SmartGate] MediaPipe not found — face overlay disabled")
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -71,17 +81,26 @@ class FaceDB:
         self.data[face_id] = encoding
         self._save()
 
-    def match(self, encoding: np.ndarray, tolerance: float = 0.5) -> str | None:
-        """Returns face_id of best match or None."""
+    def match(self, encoding: np.ndarray, tolerance: float = 0.40) -> str | None:
+        """Returns face_id of best match, or None if no close enough match.
+        Uses cosine distance (works with FaceNet 128-d or any embedding size).
+        tolerance=0.40 means ~cos-similarity ≥ 0.60 — tuned for FaceNet.
+        """
         if not self.data:
             return None
-        known_ids = list(self.data.keys())
-        known_encs = list(self.data.values())
-        if FACE_LIB == "face_recognition":
-            distances = face_recognition.face_distance(known_encs, encoding)
-            best_idx = int(np.argmin(distances))
-            if distances[best_idx] <= tolerance:
-                return known_ids[best_idx]
+        known_ids  = list(self.data.keys())
+        known_encs = np.array(list(self.data.values()), dtype=np.float32)
+
+        # Normalise to unit vectors then dot-product → cosine similarity
+        enc_norm     = encoding / (np.linalg.norm(encoding) + 1e-8)
+        norms        = np.linalg.norm(known_encs, axis=1, keepdims=True) + 1e-8
+        known_norm   = known_encs / norms
+        similarities = known_norm @ enc_norm          # shape (N,)
+        best_idx     = int(np.argmax(similarities))
+        best_dist    = 1.0 - float(similarities[best_idx])   # cosine distance
+
+        if best_dist <= tolerance:
+            return known_ids[best_idx]
         return None
 
 
@@ -116,19 +135,35 @@ class CameraThread(threading.Thread):
 
 
 def capture_face_encoding(frame: np.ndarray):
-    """Extract 128-d face encoding from frame. Returns None if no face found."""
-    if FACE_LIB != "face_recognition":
-        return None, "face_recognition 未安裝，請安裝後重試"
+    """Extract FaceNet 128-d embedding from a BGR frame using DeepFace.
+    Returns (np.ndarray, None) on success, or (None, error_message) on failure.
+    """
+    if FACE_LIB != "deepface":
+        return None, "DeepFace 未安裝，請執行：pip install deepface"
 
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    locs = face_recognition.face_locations(rgb, model="hog")
-    if not locs:
-        return None, "未偵測到人臉，請正面面向鏡頭"
-    if len(locs) > 1:
-        return None, "偵測到多於一張人臉，請確保只有您在鏡頭前"
+    try:
+        # DeepFace.represent() accepts a BGR numpy array directly
+        results = DeepFace.represent(
+            img_path        = frame,
+            model_name      = DEEPFACE_MODEL,
+            enforce_detection = True,
+            detector_backend = DEEPFACE_BACKEND,
+        )
+        if not results:
+            return None, "未偵測到人臉，請正面面向鏡頭"
+        if len(results) > 1:
+            return None, "偵測到多於一張人臉，請確保只有您在鏡頭前"
 
-    encs = face_recognition.face_encodings(rgb, locs)
-    return encs[0], None
+        embedding = np.array(results[0]["embedding"], dtype=np.float32)
+        return embedding, None
+
+    except ValueError as e:
+        msg = str(e)
+        if "Face could not be detected" in msg or "No face" in msg:
+            return None, "未偵測到人臉，請正面面向鏡頭"
+        return None, f"人臉偵測失敗：{msg[:60]}"
+    except Exception as e:
+        return None, f"識別錯誤：{str(e)[:60]}"
 
 # ─── API helpers ─────────────────────────────────────────────────────────────
 

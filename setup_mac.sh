@@ -19,7 +19,7 @@ if ! command -v python3.11 &>/dev/null; then
   brew install python@3.11
 fi
 
-# ── cmake (needed by dlib / face_recognition) ──────────────────────────────
+# ── cmake (needed by some packages; harmless if already installed) ──────────
 brew install cmake || true
 
 # ── Node.js ────────────────────────────────────────────────────────────────
@@ -45,10 +45,10 @@ pip install -r smartcount/requirements.txt
 
 # ── SmartGate deps ─────────────────────────────────────────────────────────
 echo ""
-echo "Installing SmartGate dependencies (face_recognition + MediaPipe)..."
-# dlib needs cmake
-pip install dlib
+echo "Installing SmartGate dependencies (DeepFace + MediaPipe)..."
+# DeepFace: no cmake/dlib required — works natively on Apple Silicon
 pip install -r smartgate/requirements.txt
+echo "  Note: DeepFace will download FaceNet model weights (~90 MB) on first run."
 
 # ── Frontend deps ──────────────────────────────────────────────────────────
 echo ""
