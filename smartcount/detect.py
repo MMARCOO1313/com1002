@@ -1,9 +1,11 @@
 """
 SmartCount — Real-time AI People Counter
-Uses YOLOv8n with Apple MPS (M1/M2) acceleration.
+Uses YOLOv8n with MPS (M1/M2) or CPU on Windows.
 Pushes live occupancy counts to the BridgeSpace backend.
 
-Run:  python detect.py --zone A --api http://localhost:8000
+Run (webcam):   python detect.py --zone A --show
+Run (video):    python detect.py --zone A --cam path/to/video.mp4 --show
+Run (demo):     python detect.py --zone A --demo --show
 """
 
 import cv2
@@ -27,9 +29,9 @@ PERSON_CLASS = 0
 parser = argparse.ArgumentParser(description="BridgeSpace SmartCount")
 parser.add_argument("--zone",   default="A",                   help="Zone ID (A/B/C/D)")
 parser.add_argument("--api",    default="http://localhost:8000", help="Backend API URL")
-parser.add_argument("--cam",    default=0, type=int,           help="Camera index (default 0 = built-in)")
+parser.add_argument("--cam",    default="0",                   help="Camera index (0) or path to video file")
 parser.add_argument("--show",   action="store_true",           help="Show detection window")
-parser.add_argument("--demo",   action="store_true",           help="Demo mode: use sample video")
+parser.add_argument("--demo",   action="store_true",           help="Demo mode: auto-simulate people count")
 args = parser.parse_args()
 
 
@@ -45,18 +47,75 @@ def push_count(count: int):
         print(f"[SmartCount] API push failed: {e}")
 
 
+def run_demo():
+    """Demo mode: simulate people count with a sine-wave pattern (no camera needed)."""
+    import math, random
+    print(f"[SmartCount] DEMO MODE — Zone {args.zone}: simulating occupancy changes")
+    last_push = time.time()
+    t = 0
+    while True:
+        # Simulate realistic crowd flow: sine wave with noise
+        base = 12 + 10 * math.sin(t / 30)
+        count = max(0, int(base + random.uniform(-2, 2)))
+        if args.show:
+            frame = _make_demo_frame(count)
+            cv2.imshow(f"SmartCount — Zone {args.zone} [DEMO]", frame)
+            if cv2.waitKey(33) & 0xFF == ord("q"):
+                break
+        now = time.time()
+        if now - last_push >= PUSH_INTERVAL:
+            push_count(count)
+            print(f"[SmartCount] Zone {args.zone}: {count} people (demo)")
+            last_push = now
+        time.sleep(0.1)
+        t += 1
+    cv2.destroyAllWindows()
+
+
+def _make_demo_frame(count: int):
+    """Generate a synthetic frame showing stick-figure crowd."""
+    h, w = 480, 640
+    frame = __import__("numpy").zeros((h, w, 3), dtype=__import__("numpy").uint8)
+    frame[:] = (20, 20, 40)
+    cv2.putText(frame, f"SmartCount DEMO - Zone {args.zone}",
+                (20, 40), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 230, 120), 2)
+    cv2.putText(frame, f"People detected: {count}",
+                (20, 90), cv2.FONT_HERSHEY_DUPLEX, 1.2, (255, 200, 0), 2)
+    # Draw simple circles representing people
+    import random, math
+    random.seed(count * 7)
+    for i in range(count):
+        x = random.randint(60, w - 60)
+        y = random.randint(140, h - 60)
+        cv2.circle(frame, (x, y), 18, (0, 180, 255), -1)
+        cv2.circle(frame, (x, y - 28), 10, (200, 160, 100), -1)
+    return frame
+
+
 def run():
+    if args.demo:
+        run_demo()
+        return
+
     model = YOLO(MODEL_NAME)
 
-    # Use MPS on M1/M2 for hardware acceleration
+    # Use MPS on M1/M2, CUDA on Windows GPU, else CPU
     import torch
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    if torch.backends.mps.is_available():
+        device = "mps"
+    elif torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
     print(f"[SmartCount] Using device: {device}")
     model.to(device)
 
-    cap = cv2.VideoCapture(args.cam)
+    # Support both camera index (int) and video file path (str)
+    cam_src = int(args.cam) if args.cam.isdigit() else args.cam
+    cap = cv2.VideoCapture(cam_src)
     if not cap.isOpened():
-        print("[SmartCount] ERROR: Cannot open camera")
+        print(f"[SmartCount] ERROR: Cannot open source '{args.cam}'")
+        print("Tip: use --demo for no-camera demo, or --cam path/to/video.mp4")
         return
 
     count_buffer = deque(maxlen=SMOOTH_WINDOW)
@@ -68,6 +127,10 @@ def run():
     while True:
         ret, frame = cap.read()
         if not ret:
+            # Loop video file when it ends
+            if isinstance(cam_src, str):
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
             break
 
         # ── Run YOLOv8 detection ──────────────────────────────────────────

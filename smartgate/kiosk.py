@@ -1,10 +1,11 @@
 """
 SmartGate — Face Recognition Kiosk
 On-site self-service terminal for walk-in registration and queue joining.
-Uses DeepFace (FaceNet) as primary backend — best compatibility with Apple M2.
+Uses DeepFace (FaceNet) as primary backend — compatible with M2 and Windows.
 MediaPipe provides real-time face detection overlay on the camera feed.
 
-Run:  python kiosk.py --api http://localhost:8000
+Run (normal):  python kiosk.py --api http://localhost:8000
+Run (demo):    python kiosk.py --demo --api http://localhost:8000
 """
 
 import cv2
@@ -40,13 +41,22 @@ try:
     import mediapipe as mp
     mp_face_detection = mp.solutions.face_detection
     MEDIAPIPE_OK = True
-except ImportError:
+except (ImportError, AttributeError):
     MEDIAPIPE_OK = False
+    print("[SmartGate] MediaPipe face overlay disabled (API not available)")
     print("[SmartGate] MediaPipe not found — face overlay disabled")
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 
-API_URL      = os.environ.get("BRIDGESPACE_API", "http://localhost:8000")
+import argparse as _ap
+_parser = _ap.ArgumentParser(add_help=False)
+_parser.add_argument("--api",  default=os.environ.get("BRIDGESPACE_API", "http://localhost:8000"))
+_parser.add_argument("--demo", action="store_true", help="Demo mode: no camera required")
+_parser.add_argument("--cam",  default="0", help="Camera index or video path")
+_args, _ = _parser.parse_known_args()
+
+API_URL      = _args.api
+DEMO_MODE    = _args.demo
 FACE_DB_PATH = Path(__file__).parent / "face_db"
 FACE_DB_PATH.mkdir(exist_ok=True)
 ENCODING_FILE = FACE_DB_PATH / "encodings.pkl"
@@ -109,22 +119,57 @@ face_db = FaceDB()
 # ─── Camera thread ───────────────────────────────────────────────────────────
 
 class CameraThread(threading.Thread):
-    def __init__(self, cam_idx=0):
+    def __init__(self, cam_src=0):
         super().__init__(daemon=True)
-        self.cam_idx = cam_idx
-        self.frame = None
+        self.cam_src = cam_src
+        self.frame   = None
         self.running = True
-        self._lock = threading.Lock()
+        self._lock   = threading.Lock()
+        # Demo mode: generate synthetic frame with a smiley face
+        self._demo   = DEMO_MODE or (isinstance(cam_src, str) and cam_src == "demo")
 
     def run(self):
-        cap = cv2.VideoCapture(self.cam_idx)
+        if self._demo:
+            self._run_demo()
+            return
+        src = int(self.cam_src) if str(self.cam_src).isdigit() else self.cam_src
+        cap = cv2.VideoCapture(src)
         while self.running:
             ret, frame = cap.read()
             if ret:
                 with self._lock:
                     self.frame = frame.copy()
-            time.sleep(0.03)   # ~30fps
+            else:
+                # Loop video file
+                if not str(self.cam_src).isdigit():
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            time.sleep(0.03)
         cap.release()
+
+    def _run_demo(self):
+        """Generate a synthetic camera frame (smiley + label) for demo."""
+        import math
+        t = 0
+        while self.running:
+            h, w = 480, 640
+            frame = np.zeros((h, w, 3), dtype=np.uint8)
+            frame[:] = (30, 25, 20)
+            # Animate a simple face circle
+            cx, cy = w // 2, h // 2
+            r = 90
+            cv2.circle(frame, (cx, cy), r, (200, 160, 100), -1)
+            # Eyes
+            ex = int(cx - 30 + 5 * math.sin(t / 10))
+            cv2.circle(frame, (ex, cy - 25), 10, (40, 40, 40), -1)
+            cv2.circle(frame, (cx + 30, cy - 25), 10, (40, 40, 40), -1)
+            # Mouth arc
+            cv2.ellipse(frame, (cx, cy + 20), (35, 20), 0, 0, 180, (40, 40, 40), 3)
+            cv2.putText(frame, "DEMO — No Camera", (w//2 - 130, h - 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (100, 200, 255), 2)
+            with self._lock:
+                self.frame = frame.copy()
+            time.sleep(0.05)
+            t += 1
 
     def get_frame(self):
         with self._lock:
@@ -211,10 +256,13 @@ class BridgeSpaceKiosk(tk.Tk):
     AMBER = "#F59E0B"
     WHITE = "#F1F5F9"
     GRAY  = "#64748B"
-    FONT_TITLE  = ("PingFang TC", 32, "bold")
-    FONT_LARGE  = ("PingFang TC", 24)
-    FONT_MEDIUM = ("PingFang TC", 18)
-    FONT_SMALL  = ("PingFang TC", 14)
+    # Cross-platform font: PingFang TC on macOS, Microsoft JhengHei on Windows
+    import platform as _plat
+    _CJK = "Microsoft JhengHei" if _plat.system() == "Windows" else "PingFang TC"
+    FONT_TITLE  = (_CJK, 32, "bold")
+    FONT_LARGE  = (_CJK, 24)
+    FONT_MEDIUM = (_CJK, 18)
+    FONT_SMALL  = (_CJK, 14)
 
     def __init__(self):
         super().__init__()
@@ -223,7 +271,8 @@ class BridgeSpaceKiosk(tk.Tk):
         self.attributes("-fullscreen", True)
         self.bind("<Escape>", lambda e: self.attributes("-fullscreen", False))
 
-        self.cam = CameraThread(0)
+        cam_src = "demo" if DEMO_MODE else (_args.cam if not str(_args.cam).isdigit() else int(_args.cam))
+        self.cam = CameraThread(cam_src)
         self.cam.start()
 
         self._state = "home"       # home / scanning / register_form / queue_select / confirmed
@@ -554,12 +603,6 @@ class BridgeSpaceKiosk(tk.Tk):
 # ─── Entry point ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--api", default="http://localhost:8000")
-    args = parser.parse_args()
-    API_URL = args.api
-
     app = BridgeSpaceKiosk()
     app.protocol("WM_DELETE_WINDOW", app.on_close)
     app.mainloop()
