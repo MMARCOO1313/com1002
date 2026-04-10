@@ -210,7 +210,7 @@ async def join_queue(data: JoinQueue):
 
     # Check user not already in queue for this zone
     existing = conn.execute(
-        "SELECT * FROM queue WHERE user_id=? AND zone_id=? AND status='waiting'",
+        "SELECT * FROM queue WHERE user_id=? AND zone_id=? AND status IN ('waiting','called')",
         (data.user_id, data.zone_id)
     ).fetchone()
     if existing:
@@ -243,7 +243,7 @@ async def call_next(zone_id: str):
     """Staff presses this to call the next person in line."""
     conn = get_db()
     next_person = conn.execute(
-        "SELECT * FROM queue WHERE zone_id=? AND status='waiting' ORDER BY queue_num ASC LIMIT 1",
+        "SELECT * FROM queue WHERE zone_id=? AND status IN ('waiting','called') ORDER BY queue_num ASC LIMIT 1",
         (zone_id,)
     ).fetchone()
     if not next_person:
