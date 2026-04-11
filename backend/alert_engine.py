@@ -1,0 +1,157 @@
+"""
+AlertEngine — Automated notification system for BridgeSpace.
+Sends Telegram messages for warnings, and can trigger phone calls
+for critical situations (overstay > 10 min, emergencies).
+
+Requires: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID env vars.
+Optional: TWILIO_SID, TWILIO_TOKEN, ADMIN_PHONE for phone calls.
+"""
+
+import os
+import asyncio
+import httpx
+from datetime import datetime
+from typing import Optional
+
+
+# ─── Configuration ───────────────────────────────────────────────────────────
+
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+# Twilio (optional — for phone calls)
+TWILIO_SID = os.environ.get("TWILIO_SID", "")
+TWILIO_TOKEN = os.environ.get("TWILIO_TOKEN", "")
+TWILIO_FROM = os.environ.get("TWILIO_FROM", "")
+ADMIN_PHONE = os.environ.get("ADMIN_PHONE", "")
+
+
+class AlertEngine:
+    def __init__(self, get_db, broadcast):
+        self.get_db = get_db
+        self.broadcast = broadcast
+        self._overstay_notified = set()  # track (session_zone) to avoid spam
+
+    # ── Telegram ─────────────────────────────────────────────────────────────
+
+    async def send_telegram(self, message: str, severity: str = "info"):
+        prefix = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}.get(severity, "")
+        full_msg = f"{prefix} BridgeSpace Alert\n\n{message}\n\n🕐 {datetime.now().strftime('%H:%M:%S')}"
+
+        print(f"[AlertEngine] Telegram ({severity}): {message}")
+
+        if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+            print("[AlertEngine] Telegram not configured — skipping")
+            await self._log_alert(None, "telegram_skip", severity, message)
+            # Still broadcast to frontend
+            await self.broadcast({
+                "type": "alert",
+                "severity": severity,
+                "message": message,
+                "time": datetime.now().isoformat(),
+            })
+            return
+
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(url, json={
+                    "chat_id": TELEGRAM_CHAT_ID,
+                    "text": full_msg,
+                    "parse_mode": "HTML",
+                })
+                if resp.status_code != 200:
+                    print(f"[AlertEngine] Telegram API error: {resp.text}")
+        except Exception as e:
+            print(f"[AlertEngine] Telegram send failed: {e}")
+
+        # Also broadcast alert to frontend dashboard
+        await self.broadcast({
+            "type": "alert",
+            "severity": severity,
+            "message": message,
+            "time": datetime.now().isoformat(),
+        })
+
+    # ── Phone call (Twilio) ──────────────────────────────────────────────────
+
+    async def make_phone_call(self, message: str):
+        print(f"[AlertEngine] PHONE CALL: {message}")
+
+        if not all([TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM, ADMIN_PHONE]):
+            print("[AlertEngine] Twilio not configured — skipping phone call")
+            await self.send_telegram(
+                f"📞 [PHONE CALL SIMULATED]\n{message}", "critical")
+            return
+
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Calls.json"
+        twiml = f'<Response><Say language="zh-HK">{message}</Say></Response>'
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(url, auth=(TWILIO_SID, TWILIO_TOKEN), data={
+                    "To": ADMIN_PHONE,
+                    "From": TWILIO_FROM,
+                    "Twiml": twiml,
+                })
+        except Exception as e:
+            print(f"[AlertEngine] Phone call failed: {e}")
+
+    # ── Specific alert types ─────────────────────────────────────────────────
+
+    async def alert_overstay(self, zone_id: str, user_name: str, minutes: int):
+        key = f"{zone_id}_{minutes//5}"  # dedupe per 5-min window
+        if key in self._overstay_notified:
+            return
+        self._overstay_notified.add(key)
+        await self.send_telegram(
+            f"Zone {zone_id} — 用戶 <b>{user_name}</b> 超時 {minutes} 分鐘\n"
+            f"燈光已關閉、設備已收起，用戶仍未離場",
+            "warning"
+        )
+        await self._log_alert(zone_id, "overstay", "warning",
+                              f"{user_name} overstay {minutes}min")
+
+    async def alert_overstay_critical(self, zone_id: str, minutes: int):
+        key = f"{zone_id}_phone"
+        if key in self._overstay_notified:
+            return
+        self._overstay_notified.add(key)
+        await self.make_phone_call(
+            f"BridgeSpace 緊急通知：Zone {zone_id} 用戶超時 {minutes} 分鐘，請立即處理")
+        await self._log_alert(zone_id, "overstay", "critical",
+                              f"Phone call triggered: {minutes}min overstay")
+
+    async def alert_overcapacity(self, zone_id: str, count: int, capacity: int):
+        await self.send_telegram(
+            f"Zone {zone_id} — 人數超載！\n"
+            f"偵測到 <b>{count}</b> 人（容量上限 {capacity}）",
+            "critical"
+        )
+        await self._log_alert(zone_id, "overcapacity", "critical",
+                              f"{count}/{capacity}")
+
+    async def alert_device_fault(self, zone_id: str, device: str, error: str):
+        await self.send_telegram(
+            f"Zone {zone_id} — 設備故障\n"
+            f"設備：{device}\n錯誤：{error}",
+            "critical"
+        )
+        await self._log_alert(zone_id, "device_fault", "critical",
+                              f"{device}: {error}")
+
+    # ── Log to database ──────────────────────────────────────────────────────
+
+    async def _log_alert(self, zone_id, alert_type, severity, message):
+        try:
+            conn = self.get_db()
+            conn.execute(
+                """INSERT INTO alerts
+                   (zone_id, alert_type, severity, message, ts)
+                   VALUES (?,?,?,?,?)""",
+                (zone_id, alert_type, severity, message,
+                 datetime.now().isoformat())
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"[AlertEngine] DB log error: {e}")
