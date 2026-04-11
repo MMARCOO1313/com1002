@@ -1,111 +1,53 @@
-/**
- * OccupancyBoard — left panel
- * Shows real-time people count per zone with animated fill bars.
- */
-export default function OccupancyBoard({ zones }) {
-  if (!zones.length) {
-    return (
-      <div style={s.card}>
-        <div style={s.sectionTitle}>📊 即時使用情況</div>
-        <div style={s.empty}>載入中…</div>
-      </div>
-    )
-  }
-
+export default function OccupancyBoard({ zones = [] }) {
   return (
-    <div style={s.card}>
-      <div style={s.sectionTitle}>📊 即時使用情況</div>
-      <div style={s.zoneGrid}>
-        {zones.map(z => <ZoneCard key={z.id} zone={z} />)}
+    <div style={styles.panel}>
+      <div style={styles.header}>
+        <span style={{ fontSize: 18 }}>ð</span>
+        <span style={styles.title}>ZONE OCCUPANCY</span>
       </div>
-      <div style={s.legend}>
-        <span style={{ color: '#22C55E' }}>● 空閒 &lt;70%</span>
-        <span style={{ color: '#F59E0B' }}>● 繁忙 70–89%</span>
-        <span style={{ color: '#EF4444' }}>● 已滿 ≥90%</span>
-      </div>
+      {zones.map(z => <ZoneCard key={z.id} zone={z} />)}
     </div>
   )
 }
 
 function ZoneCard({ zone }) {
-  const pct = Math.min(100, Math.round((zone.current_count / Math.max(zone.capacity, 1)) * 100))
-
-  let barColor, statusText, statusColor
-  if (pct >= 90) {
-    barColor = '#EF4444'; statusText = '已滿'; statusColor = '#EF4444'
-  } else if (pct >= 70) {
-    barColor = '#F59E0B'; statusText = '繁忙'; statusColor = '#F59E0B'
-  } else {
-    barColor = '#22C55E'; statusText = '空閒'; statusColor = '#22C55E'
-  }
+  const z = zone
+  const pct = Math.min(100, Math.round((z.current_count / z.capacity) * 100))
+  const color = pct >= 100 ? '#EF4444' : pct >= 85 ? '#FBBF24' : '#22C55E'
+  const statusLabel = z.status === 'full' ? 'FULL' : z.status === 'busy' ? 'HIGH' : 'OPEN'
 
   return (
-    <div style={s.zoneCard}>
-      <div style={s.zoneHeader}>
-        <span style={s.zoneName}>{zone.name_zh}</span>
-        <span style={{ ...s.statusBadge, background: statusColor + '22', color: statusColor }}>
-          {statusText}
-        </span>
+    <div style={{ ...styles.card, borderColor: color + '44' }}>
+      <div style={styles.cardTop}>
+        <div style={{ ...styles.zoneCircle, background: color }}>{z.id}</div>
+        <div style={{ flex: 1 }}>
+          <div style={styles.zoneName}>{z.name_en || z.name_zh}</div>
+          <div style={{ color: '#888', fontSize: 11 }}>{z.name_zh}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ color, fontSize: 24, fontWeight: 800 }}>{z.current_count}</div>
+          <div style={{ color: '#888', fontSize: 11 }}>/ {z.capacity}</div>
+        </div>
       </div>
-
-      {/* Count display */}
-      <div style={s.countRow}>
-        <span style={s.countBig}>{zone.current_count}</span>
-        <span style={s.countSep}>/</span>
-        <span style={s.countCap}>{zone.capacity}</span>
-        <span style={s.countLabel}>人</span>
+      <div style={styles.barBg}>
+        <div style={{ ...styles.barFill, width: `${pct}%`, background: color }} />
       </div>
-
-      {/* Progress bar */}
-      <div style={s.barBg}>
-        <div style={{
-          ...s.barFill,
-          width: `${pct}%`,
-          background: barColor,
-          boxShadow: `0 0 8px ${barColor}88`,
-        }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+        <span style={{ color, fontSize: 11, fontWeight: 600 }}>{statusLabel}</span>
+        <span style={{ color: '#888', fontSize: 11 }}>{pct}%</span>
       </div>
-      <div style={{ ...s.pctLabel, color: barColor }}>{pct}%</div>
     </div>
   )
 }
 
-const s = {
-  card: {
-    background: '#1E293B', borderRadius: 16, padding: 24, height: '100%',
-    border: '1px solid #334155',
-  },
-  sectionTitle: {
-    fontSize: 20, fontWeight: 700, color: '#F1F5F9', marginBottom: 20,
-    paddingBottom: 12, borderBottom: '1px solid #334155',
-  },
-  zoneGrid: { display: 'flex', flexDirection: 'column', gap: 16 },
-  zoneCard: {
-    background: '#0F172A', borderRadius: 12, padding: '16px 20px',
-    border: '1px solid #334155',
-  },
-  zoneHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  zoneName: { fontSize: 16, fontWeight: 600, color: '#E2E8F0' },
-  statusBadge: {
-    fontSize: 13, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
-  },
-  countRow: { display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 10 },
-  countBig: { fontSize: 42, fontWeight: 700, color: '#F1F5F9', lineHeight: 1 },
-  countSep: { fontSize: 28, color: '#475569' },
-  countCap: { fontSize: 24, color: '#94A3B8' },
-  countLabel: { fontSize: 16, color: '#64748B', marginLeft: 4 },
-  barBg: {
-    background: '#1E293B', borderRadius: 8, height: 10, overflow: 'hidden',
-    border: '1px solid #334155',
-  },
-  barFill: {
-    height: '100%', borderRadius: 8,
-    transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
-  },
-  pctLabel: { fontSize: 13, marginTop: 4, textAlign: 'right', fontVariantNumeric: 'tabular-nums' },
-  legend: {
-    display: 'flex', gap: 20, marginTop: 20, paddingTop: 16,
-    borderTop: '1px solid #334155', fontSize: 13, color: '#94A3B8',
-  },
-  empty: { color: '#64748B', padding: 40, textAlign: 'center' },
+const styles = {
+  panel: { background: '#1A1A2E', borderRadius: 12, padding: 16, border: '1px solid #2A2A3E' },
+  header: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 },
+  title: { fontSize: 14, fontWeight: 700, color: '#FFF', letterSpacing: 1 },
+  card: { background: '#12121F', borderRadius: 10, padding: 12, marginBottom: 8, border: '1px solid' },
+  cardTop: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 },
+  zoneCircle: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontWeight: 800, fontSize: 16 },
+  zoneName: { fontSize: 13, fontWeight: 600, color: '#FFF' },
+  barBg: { height: 8, borderRadius: 4, background: '#2A2A3E', overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 4, transition: 'width 0.5s ease' },
 }
