@@ -17,8 +17,10 @@
 | 2026-04-12 17:50 | Fixed kiosk/backend session contract drift | `smartgate/kiosk.py` | `python -m py_compile ...` |
 | 2026-04-12 17:51 | Added operator runbook and corrected README integration details | `docs/operation-guide.md`, `README.md` | README spot-check + file creation |
 | 2026-04-12 17:53 | Rebuilt broken queue panel component and restored frontend production build | `frontend/src/components/QueueBoard.jsx` | `npm run build` |
+| 2026-04-12 17:45 | Published completion branch to GitHub | branch `codex/v2-finish` | `git push -u origin codex/v2-finish` |
+| 2026-04-12 17:46 | Opened draft PR for v2.0 completion handoff | PR `#1` | GitHub draft PR: `https://github.com/MMARCOO1313/com1002/pull/1` |
 
 ## Open Tasks
 
-- Review diff and publish the branch to GitHub.
-- Create a draft PR for the v2.0 completion pass.
+- No open execution tasks.
+- If the PR is accepted, merge `codex/v2-finish` into `main`.
