@@ -165,18 +165,18 @@ def api_get_zones() -> list:
     except Exception:
         return []
 
-def api_session_enter(user_id: str, zone_id: str) -> dict:
+def api_session_enter(face_id: str, zone_id: str, queue_id: str | None = None) -> dict:
     """POST /session/enter — start a timed session after entering the zone."""
     r = requests.post(f"{API_URL}/session/enter",
-                      json={"user_id": user_id, "zone_id": zone_id},
+                      json={"face_id": face_id, "zone_id": zone_id, "queue_id": queue_id},
                       timeout=5)
     r.raise_for_status()
     return r.json()
 
-def api_session_extend(user_id: str, zone_id: str) -> dict:
+def api_session_extend(session_id: str) -> dict:
     """POST /session/extend — extend the current session (max 2 extensions)."""
     r = requests.post(f"{API_URL}/session/extend",
-                      json={"user_id": user_id, "zone_id": zone_id},
+                      json={"session_id": session_id},
                       timeout=5)
     r.raise_for_status()
     return r.json()
@@ -346,8 +346,11 @@ class BridgeSpaceKiosk(tk.Tk):
                 if user_session:
                     self.after(1200, lambda: self._show_session_started(
                         user_session["zone_id"],
-                        {"duration_min": max(1, int(user_session.get("remaining_seconds", 60) / 60)),
-                         "extensions": user_session.get("extensions", 0)}
+                        {
+                            "session_id": user_session.get("id"),
+                            "remaining_seconds": max(60, int(user_session.get("remaining_seconds", 60))),
+                            "extensions": user_session.get("extended", 0),
+                        }
                     ))
                 else:
                     self.after(1200, self._show_zone_select)
@@ -430,7 +433,12 @@ class BridgeSpaceKiosk(tk.Tk):
         try:
             result = api_register(name, phone, face_id)
             face_db.add(face_id, encoding)
-            self._current_user = {"id": result["user_id"], "name": name, "phone": phone}
+            self._current_user = {
+                "id": result["user_id"],
+                "name": name,
+                "phone": phone,
+                "face_id": face_id,
+            }
             self._pending_encoding = None
             self.reg_status.config(text=f"✅ 登記成功！歡迎 {name}", fg=self.GREEN)
             self.after(1200, self._show_zone_select)
@@ -488,11 +496,11 @@ class BridgeSpaceKiosk(tk.Tk):
             if walk_in:
                 # Direct entry — start session immediately
                 try:
-                    sess = api_session_enter(self._current_user["id"], zone_id)
+                    sess = api_session_enter(self._current_user["face_id"], zone_id)
                     self._show_session_started(zone_id, sess)
                 except Exception:
                     # Session API failed, still show queue confirmation
-                     self._show_confirmed(zone_id, result["queue_num"], walk_in=True)
+                    self._show_confirmed(zone_id, result["queue_num"], walk_in=True)
             else:
                 self._show_confirmed(zone_id, result["queue_num"], walk_in=False)
         except requests.exceptions.HTTPError as e:
@@ -547,10 +555,17 @@ class BridgeSpaceKiosk(tk.Tk):
     def _show_session_started(self, zone_id: str, session_info: dict):
         """Show session timer screen after entering the zone."""
         self._state = "session_active"
+        remaining_seconds = session_info.get("remaining_seconds")
+        if remaining_seconds is None:
+            remaining_seconds = session_info.get("duration_min", 45) * 60
+
         self._active_session = {
+            "session_id": session_info.get("session_id"),
             "zone_id": zone_id,
             "user_id": self._current_user["id"],
-            "duration_min": session_info.get("duration_min", 45),
+            "face_id": self._current_user.get("face_id"),
+            "duration_min": max(1, int((remaining_seconds + 59) / 60)),
+            "remaining_seconds": remaining_seconds,
             "extensions": session_info.get("extensions", 0),
             "max_extensions": 2,
             "start_time": time.time(),
@@ -606,7 +621,7 @@ class BridgeSpaceKiosk(tk.Tk):
             return
         sess = self._active_session
         elapsed = time.time() - sess["start_time"]
-        remaining = (sess["duration_min"] * 60) - elapsed
+        remaining = sess["remaining_seconds"] - elapsed
 
         if remaining <= 0:
             self.session_timer_lbl.config(text="00:00", fg=self.RED)
@@ -628,16 +643,20 @@ class BridgeSpaceKiosk(tk.Tk):
         if not self._active_session:
             return
         sess = self._active_session
+        if not sess.get("session_id"):
+            messagebox.showwarning("提示", "目前沒有可續時的有效 session")
+            return
         try:
-            result = api_session_extend(sess["user_id"], sess["zone_id"])
-            new_end = result.get("new_end")
-            ext_count = result.get("extensions", sess["extensions"] + 1)
-            # Update local session
-            sess["duration_min"] += 15
-            sess["extensions"] = ext_count
-            # Refresh the session screen
+            result = api_session_extend(sess["session_id"])
+            extensions_remaining = result.get("extensions_remaining")
+            ext_count = (
+                sess["max_extensions"] - extensions_remaining
+                if extensions_remaining is not None
+                else sess["extensions"] + 1
+            )
             self._show_session_started(sess["zone_id"], {
-                "duration_min": sess["duration_min"],
+                "session_id": sess["session_id"],
+                "remaining_seconds": max(0, int(sess["remaining_seconds"] - (time.time() - sess["start_time"]))) + 15 * 60,
                 "extensions": ext_count,
             })
         except requests.exceptions.HTTPError as e:
