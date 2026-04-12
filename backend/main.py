@@ -24,6 +24,7 @@ from session_manager import SessionManager
 from auto_queue import OccupancyWatcher
 from smart_control import SmartControl
 from alert_engine import AlertEngine
+from zone_catalog import normalize_zone_catalog
 
 # âââ Database ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
@@ -109,19 +110,7 @@ def init_db():
         );
     """)
 
-    # Seed zones if empty
-    cursor = conn.execute("SELECT COUNT(*) FROM zones")
-    if cursor.fetchone()[0] == 0:
-        zones = [
-            ("A", "ç¾½æ¯ç / ç±çå", "Badminton / Basketball", 30, 2700),
-            ("B", "å¹åç / ä¹ä¹çå", "Pickleball / Table Tennis", 25, 1800),
-            ("C", "ç¤¾åä¼éå", "Community Leisure", 40, 0),
-            ("D", "æ°èéåå", "Emerging Sports", 25, 2700),
-        ]
-        conn.executemany(
-            "INSERT INTO zones (id, name_zh, name_en, capacity, session_duration) VALUES (?,?,?,?,?)",
-            zones
-        )
+    normalize_zone_catalog(conn)
     conn.commit()
     conn.close()
 
@@ -231,7 +220,7 @@ def register_user(data: RegisterUser):
         conn.close()
         raise HTTPException(400, "Face already registered")
     conn.close()
-    return {"user_id": user_id, "message": "å·²æåç»è¨"}
+    return {"user_id": user_id, "message": "User registered successfully"}
 
 @app.get("/users/by-face/{face_id}")
 def get_user_by_face(face_id: str):
@@ -239,7 +228,7 @@ def get_user_by_face(face_id: str):
     row = conn.execute("SELECT * FROM users WHERE face_id=?", (face_id,)).fetchone()
     conn.close()
     if not row:
-        raise HTTPException(404, "æªæ¾å°ç¨æ¶")
+        raise HTTPException(404, "Face not found")
     return dict(row)
 
 # âââ Zones & Occupancy âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -296,7 +285,7 @@ async def join_queue(data: JoinQueue):
     ).fetchone()
     if existing:
         conn.close()
-        raise HTTPException(400, "æ¨å·²å¨æ­¤ååæé")
+        raise HTTPException(400, "User is already waiting or has already been called for this zone")
 
     # Check walk-in: if < 50% capacity and no queue, allow direct entry
     zone = conn.execute("SELECT * FROM zones WHERE id=?", (data.zone_id,)).fetchone()
@@ -309,7 +298,7 @@ async def join_queue(data: JoinQueue):
         conn.close()
         return {
             "walk_in": True,
-            "message": "å ´å°ç©ºéï¼å¯ç´æ¥å¥å ´ï¼è«å° SmartGate æèé²å¥",
+            "message": "Low occupancy detected. Walk-in entry is available via SmartGate.",
             "queue_num": 0,
         }
 
@@ -330,7 +319,7 @@ async def join_queue(data: JoinQueue):
     conn.close()
     await manager.broadcast({"type": "queue", "data": queue_data})
 
-    return {"queue_id": entry_id, "queue_num": next_num, "message": f"æéèç¢¼ï¼{next_num}"}
+    return {"queue_id": entry_id, "queue_num": next_num, "message": f"Queue number assigned: {next_num}"}
 
 @app.post("/queue/call-next/{zone_id}")
 async def call_next(zone_id: str):
@@ -342,7 +331,7 @@ async def call_next(zone_id: str):
     ).fetchone()
     if not next_person:
         conn.close()
-        return {"message": "éä¼å·²ç©º"}
+        return {"message": "No one is waiting in this zone"}
     conn.execute(
         "UPDATE queue SET status='called', called_at=? WHERE id=?",
         (datetime.now().isoformat(), next_person["id"])
@@ -356,7 +345,7 @@ async def call_next(zone_id: str):
         "type": "called",
         "zone_id": zone_id,
         "queue_num": next_person["queue_num"],
-        "user_name": user["name"] if user else "ç¨æ¶",
+        "user_name": user["name"] if user else "Guest",
         "queue": queue_data,
         "auto": False,
     })
@@ -384,7 +373,7 @@ async def enter_zone(data: EnterZone):
     user = conn.execute("SELECT * FROM users WHERE face_id=?", (data.face_id,)).fetchone()
     if not user:
         conn.close()
-        raise HTTPException(404, "æªè­å¥ç¨æ¶ï¼è«åç»è¨")
+        raise HTTPException(404, "Face is not registered")
 
     # Find their called queue entry
     queue_entry = conn.execute(

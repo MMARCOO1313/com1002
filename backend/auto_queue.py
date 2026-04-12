@@ -115,7 +115,7 @@ class OccupancyWatcher:
         queue_data = self._get_queue_snapshot(conn)
         conn.close()
 
-        user_name = user["name"] if user else "用戶"
+        user_name = user["name"] if user else "Guest"
         print(f"[AutoQueue] Zone {zone_id}: auto-called #{next_person['queue_num']} ({user_name})")
 
         # Broadcast to all screens

@@ -35,8 +35,8 @@ class AlertEngine:
     # ── Telegram ─────────────────────────────────────────────────────────────
 
     async def send_telegram(self, message: str, severity: str = "info"):
-        prefix = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}.get(severity, "")
-        full_msg = f"{prefix} BridgeSpace Alert\n\n{message}\n\n🕐 {datetime.now().strftime('%H:%M:%S')}"
+        prefix = {"info": "[INFO]", "warning": "[WARN]", "critical": "[CRIT]"}.get(severity, "[INFO]")
+        full_msg = f"{prefix} BridgeSpace Alert\n\n{message}\n\nTime: {datetime.now().strftime('%H:%M:%S')}"
 
         print(f"[AlertEngine] Telegram ({severity}): {message}")
 
@@ -81,7 +81,7 @@ class AlertEngine:
         if not all([TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM, ADMIN_PHONE]):
             print("[AlertEngine] Twilio not configured — skipping phone call")
             await self.send_telegram(
-                f"📞 [PHONE CALL SIMULATED]\n{message}", "critical")
+                f"[PHONE CALL SIMULATED]\n{message}", "critical")
             return
 
         url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Calls.json"
@@ -104,8 +104,8 @@ class AlertEngine:
             return
         self._overstay_notified.add(key)
         await self.send_telegram(
-            f"Zone {zone_id} — 用戶 <b>{user_name}</b> 超時 {minutes} 分鐘\n"
-            f"燈光已關閉、設備已收起，用戶仍未離場",
+            f"Zone {zone_id} - user <b>{user_name}</b> has overstayed by {minutes} minute(s).\n"
+            f"Lights have been turned off and equipment has been retracted.",
             "warning"
         )
         await self._log_alert(zone_id, "overstay", "warning",
@@ -117,14 +117,14 @@ class AlertEngine:
             return
         self._overstay_notified.add(key)
         await self.make_phone_call(
-            f"BridgeSpace 緊急通知：Zone {zone_id} 用戶超時 {minutes} 分鐘，請立即處理")
+            f"BridgeSpace emergency notification. Zone {zone_id} user has overstayed by {minutes} minutes. Please investigate immediately.")
         await self._log_alert(zone_id, "overstay", "critical",
                               f"Phone call triggered: {minutes}min overstay")
 
     async def alert_overcapacity(self, zone_id: str, count: int, capacity: int):
         await self.send_telegram(
-            f"Zone {zone_id} — 人數超載！\n"
-            f"偵測到 <b>{count}</b> 人（容量上限 {capacity}）",
+            f"Zone {zone_id} is over capacity.\n"
+            f"Detected <b>{count}</b> people while the limit is {capacity}.",
             "critical"
         )
         await self._log_alert(zone_id, "overcapacity", "critical",
@@ -132,8 +132,8 @@ class AlertEngine:
 
     async def alert_device_fault(self, zone_id: str, device: str, error: str):
         await self.send_telegram(
-            f"Zone {zone_id} — 設備故障\n"
-            f"設備：{device}\n錯誤：{error}",
+            f"Zone {zone_id} device fault detected.\n"
+            f"Device: {device}\nError: {error}",
             "critical"
         )
         await self._log_alert(zone_id, "device_fault", "critical",

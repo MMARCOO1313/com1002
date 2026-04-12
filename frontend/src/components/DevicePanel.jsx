@@ -1,8 +1,12 @@
-const DEVICE_ICONS = { light: '💡', hoop: '🏀', gate: '🚪' }
+const DEVICE_ICONS = { light: 'LGT', hoop: 'HOP', gate: 'GATE' }
 const STATE_COLORS = {
-  on: '#22C55E', off: '#555', flash: '#FBBF24',
-  deployed: '#22C55E', retracted: '#EF4444',
-  open: '#22C55E', locked: '#EF4444',
+  on: '#22C55E',
+  off: '#555',
+  flash: '#FBBF24',
+  deployed: '#22C55E',
+  retracted: '#EF4444',
+  open: '#22C55E',
+  locked: '#EF4444',
   'n/a': '#333',
 }
 
@@ -13,7 +17,7 @@ export default function DevicePanel({ devices = {} }) {
   return (
     <div style={styles.panel}>
       <div style={styles.header}>
-        <span>🔌</span>
+        <span>CTRL</span>
         <span style={styles.title}>SMART CONTROL</span>
       </div>
       <div style={styles.grid}>
@@ -23,13 +27,17 @@ export default function DevicePanel({ devices = {} }) {
             <div style={styles.devices}>
               {Object.entries(devs).map(([dev, state]) => (
                 <div key={dev} style={styles.device}>
-                  <span>{DEVICE_ICONS[dev] || '⚙️'}</span>
+                  <span>{DEVICE_ICONS[dev] || 'AUX'}</span>
                   <span style={{ fontSize: 10, color: '#999' }}>{dev}</span>
-                  <span style={{
-                    ...styles.state,
-                    background: STATE_COLORS[state] || '#555',
-                    animation: state === 'flash' ? 'pulse 0.5s infinite' : 'none',
-                  }}>{state}</span>
+                  <span
+                    style={{
+                      ...styles.state,
+                      background: STATE_COLORS[state] || '#555',
+                      animation: state === 'flash' ? 'pulse 0.5s infinite' : 'none',
+                    }}
+                  >
+                    {state}
+                  </span>
                 </div>
               ))}
             </div>

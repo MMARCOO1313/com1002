@@ -3,14 +3,14 @@ export default function CalledAlert({ zone_id, queue_num, user_name, auto }) {
     <div style={styles.overlay}>
       <div style={styles.card}>
         <div style={styles.label}>
-          {auto ? 'ð¤ èªåå«è' : 'ð¢ å«è'}
+          {auto ? 'AUTOMATIC NEXT CALL' : 'MANUAL NEXT CALL'}
         </div>
         <div style={styles.number}>{zone_id}-{String(queue_num).padStart(3, '0')}</div>
         <div style={styles.name}>{user_name}</div>
         <div style={styles.instruction}>
-          è«å° Zone {zone_id} å¥å£æèé²å ´
+          Please proceed to Zone {zone_id} and complete entry at SmartGate.
         </div>
-        <div style={styles.timer}>15 åéå§æªé²å ´å°èªåè·³è</div>
+        <div style={styles.timer}>Entry window: 15 minutes after the call is shown.</div>
       </div>
     </div>
   )

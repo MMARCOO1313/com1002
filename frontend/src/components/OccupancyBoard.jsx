@@ -2,31 +2,30 @@ export default function OccupancyBoard({ zones = [] }) {
   return (
     <div style={styles.panel}>
       <div style={styles.header}>
-        <span style={{ fontSize: 18 }}>ð</span>
+        <span style={{ fontSize: 18 }}>OCC</span>
         <span style={styles.title}>ZONE OCCUPANCY</span>
       </div>
-      {zones.map(z => <ZoneCard key={z.id} zone={z} />)}
+      {zones.map(zone => <ZoneCard key={zone.id} zone={zone} />)}
     </div>
   )
 }
 
 function ZoneCard({ zone }) {
-  const z = zone
-  const pct = Math.min(100, Math.round((z.current_count / z.capacity) * 100))
+  const pct = Math.min(100, Math.round((zone.current_count / zone.capacity) * 100))
   const color = pct >= 100 ? '#EF4444' : pct >= 85 ? '#FBBF24' : '#22C55E'
-  const statusLabel = z.status === 'full' ? 'FULL' : z.status === 'busy' ? 'HIGH' : 'OPEN'
+  const statusLabel = zone.status === 'full' ? 'FULL' : zone.status === 'busy' ? 'HIGH' : 'OPEN'
 
   return (
     <div style={{ ...styles.card, borderColor: color + '44' }}>
       <div style={styles.cardTop}>
-        <div style={{ ...styles.zoneCircle, background: color }}>{z.id}</div>
+        <div style={{ ...styles.zoneCircle, background: color }}>{zone.id}</div>
         <div style={{ flex: 1 }}>
-          <div style={styles.zoneName}>{z.name_en || z.name_zh}</div>
-          <div style={{ color: '#888', fontSize: 11 }}>{z.name_zh}</div>
+          <div style={styles.zoneName}>{zone.name_en || zone.name_zh}</div>
+          <div style={{ color: '#888', fontSize: 11 }}>{zone.name_zh}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ color, fontSize: 24, fontWeight: 800 }}>{z.current_count}</div>
-          <div style={{ color: '#888', fontSize: 11 }}>/ {z.capacity}</div>
+          <div style={{ color, fontSize: 24, fontWeight: 800 }}>{zone.current_count}</div>
+          <div style={{ color: '#888', fontSize: 11 }}>/ {zone.capacity}</div>
         </div>
       </div>
       <div style={styles.barBg}>

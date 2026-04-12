@@ -42,7 +42,7 @@ class SessionManager:
 
         if duration == 0:
             conn.close()
-            return {"session_id": None, "message": "此區域無時間限制"}
+            return {"session_id": None, "message": "This zone does not enforce a session timer."}
 
         now = datetime.now()
         expires = now + timedelta(seconds=duration)
@@ -143,11 +143,11 @@ class SessionManager:
 
         if not s:
             conn.close()
-            return {"ok": False, "message": "Session 不存在"}
+            return {"ok": False, "message": "Session not found"}
 
         if s["extended"] >= MAX_EXTENSIONS:
             conn.close()
-            return {"ok": False, "message": f"已達最大續時次數 ({MAX_EXTENSIONS})"}
+            return {"ok": False, "message": f"Maximum number of extensions reached ({MAX_EXTENSIONS})"}
 
         # Check if anyone is waiting in queue
         waiting = conn.execute(
@@ -157,7 +157,7 @@ class SessionManager:
 
         if waiting > 0:
             conn.close()
-            return {"ok": False, "message": f"有 {waiting} 人正在排隊，無法續時"}
+            return {"ok": False, "message": f"Cannot extend while {waiting} people are waiting in the queue"}
 
         duration = ZONE_SESSION_DURATION.get(s["zone_id"], 45 * 60)
         new_expires = datetime.fromisoformat(s["expires_at"]) + timedelta(seconds=duration)

@@ -1,95 +1,119 @@
 """
-SmartGate — Face Recognition Kiosk  v2.0  (Autonomous Edition)
-On-site self-service terminal for walk-in registration, queue joining,
-session entry, session extension, and live session timer display.
-Uses MediaPipe (faster, better M2 support) + face_recognition for embedding.
-
-Run:  python kiosk.py --api http://localhost:8000
+BridgeSpace SmartGate v2.0
+Self-service kiosk for registration, queue joining, zone entry, and session extension.
 """
 
-import cv2
-import tkinter as tk
-from tkinter import ttk, messagebox
-import threading
-import numpy as np
-import requests
-import json
+import argparse
 import os
 import pickle
+import threading
 import time
-import datetime
+import uuid
+from datetime import datetime
 from pathlib import Path
+
+import cv2
+import numpy as np
+import requests
+import tkinter as tk
 from PIL import Image, ImageTk
+from tkinter import messagebox, ttk
 
-try:
-    import face_recognition
-    FACE_LIB = "face_recognition"
-except ImportError:
-    FACE_LIB = None
-    print("[SmartGate] face_recognition not found — using MediaPipe fallback")
+from face_matching import (
+    MEDIAPIPE_OK,
+    detect_single_face,
+    encode_face_crop,
+    match_face_signature,
+    mp_face_detection,
+)
 
-try:
-    import mediapipe as mp
-    mp_face_detection = mp.solutions.face_detection
-    MEDIAPIPE_OK = True
-except ImportError:
-    MEDIAPIPE_OK = False
-    print("[SmartGate] MediaPipe not found — basic OpenCV face detection will be used")
 
-# ─── Config ─────────────────────────────────────────────────────────────────
-
-API_URL      = os.environ.get("BRIDGESPACE_API", "http://localhost:8000")
+API_URL = os.environ.get("BRIDGESPACE_API", "http://localhost:8000")
 FACE_DB_PATH = Path(__file__).parent / "face_db"
 FACE_DB_PATH.mkdir(exist_ok=True)
 ENCODING_FILE = FACE_DB_PATH / "encodings.pkl"
+USE_LEGACY_FACE_RECOGNITION = os.environ.get("SMARTGATE_USE_LEGACY_FACE_RECOGNITION") == "1"
+
+try:
+    import face_recognition
+
+    FACE_LIB_AVAILABLE = True
+except ImportError:
+    face_recognition = None
+    FACE_LIB_AVAILABLE = False
+
 
 ZONES = [
-    ("A", "羽毛球 / 籃球區"),
-    ("B", "匹克球 / 乒乓球區"),
-    ("C", "社區休閒區"),
-    ("D", "新興運動區"),
+    ("A", "Badminton / Basketball"),
+    ("B", "Pickleball / Table Tennis"),
+    ("C", "Community Leisure"),
+    ("D", "Emerging Sports"),
 ]
 
-# ─── Face database ───────────────────────────────────────────────────────────
 
 class FaceDB:
-    """Stores {face_id: encoding} mapping in a local pickle file."""
+    """Stores local face samples for kiosk-side recognition."""
 
     def __init__(self):
-        self.data: dict = {}   # face_id -> encoding (128-d np array)
+        self.data = {}
         self._load()
 
     def _load(self):
         if ENCODING_FILE.exists():
-            with open(ENCODING_FILE, "rb") as f:
-                self.data = pickle.load(f)
-        print(f"[FaceDB] Loaded {len(self.data)} face(s)")
+            with open(ENCODING_FILE, "rb") as file:
+                raw = pickle.load(file)
+            self.data = {
+                face_id: self._coerce_entry(entry)
+                for face_id, entry in raw.items()
+            }
+        print(f"[FaceDB] Loaded {len(self.data)} face sample(s)")
 
     def _save(self):
-        with open(ENCODING_FILE, "wb") as f:
-            pickle.dump(self.data, f)
+        with open(ENCODING_FILE, "wb") as file:
+            pickle.dump(self.data, file)
 
-    def add(self, face_id: str, encoding: np.ndarray):
-        self.data[face_id] = encoding
+    def _coerce_entry(self, entry):
+        if isinstance(entry, dict) and "encoding" in entry:
+            return {
+                "algorithm": entry.get("algorithm", "face_signature"),
+                "encoding": np.asarray(entry["encoding"], dtype=np.float32),
+            }
+        return {
+            "algorithm": "legacy_face_recognition",
+            "encoding": np.asarray(entry, dtype=np.float32),
+        }
+
+    def add(self, face_id, encoding, algorithm):
+        self.data[face_id] = {
+            "algorithm": algorithm,
+            "encoding": np.asarray(encoding, dtype=np.float32),
+        }
         self._save()
 
-    def match(self, encoding: np.ndarray, tolerance: float = 0.5) -> str | None:
-        """Returns face_id of best match or None."""
-        if not self.data:
+    def match(self, encoding, algorithm, tolerance=None):
+        compatible = {
+            face_id: entry["encoding"]
+            for face_id, entry in self.data.items()
+            if entry["algorithm"] == algorithm
+        }
+        if not compatible:
             return None
-        known_ids = list(self.data.keys())
-        known_encs = list(self.data.values())
-        if FACE_LIB == "face_recognition":
-            distances = face_recognition.face_distance(known_encs, encoding)
+
+        if algorithm == "legacy_face_recognition" and FACE_LIB_AVAILABLE:
+            known_ids = list(compatible.keys())
+            distances = face_recognition.face_distance(list(compatible.values()), encoding)
             best_idx = int(np.argmin(distances))
-            if distances[best_idx] <= tolerance:
+            threshold = tolerance if tolerance is not None else 0.50
+            if float(distances[best_idx]) <= threshold:
                 return known_ids[best_idx]
-        return None
+            return None
+
+        threshold = tolerance if tolerance is not None else 0.55
+        return match_face_signature(compatible, encoding, tolerance=threshold)
 
 
 face_db = FaceDB()
 
-# ─── Camera thread ───────────────────────────────────────────────────────────
 
 class CameraThread(threading.Thread):
     def __init__(self, cam_idx=0):
@@ -106,7 +130,7 @@ class CameraThread(threading.Thread):
             if ret:
                 with self._lock:
                     self.frame = frame.copy()
-            time.sleep(0.03)  # ~30fps
+            time.sleep(0.03)
         cap.release()
 
     def get_frame(self):
@@ -117,600 +141,529 @@ class CameraThread(threading.Thread):
         self.running = False
 
 
-def capture_face_encoding(frame: np.ndarray):
-    """Extract 128-d face encoding from frame. Returns None if no face found."""
-    if FACE_LIB != "face_recognition":
-        return None, "face_recognition 未安蝦，讋�螆後重試"
+def capture_face_sample(frame):
+    if USE_LEGACY_FACE_RECOGNITION and FACE_LIB_AVAILABLE:
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        locations = face_recognition.face_locations(rgb, model="hog")
+        if not locations:
+            return None, None, "No face detected. Please look directly at the camera."
+        if len(locations) > 1:
+            return None, None, "Multiple faces detected. Please scan one person at a time."
 
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    locs = face_recognition.face_locations(rgb, model="hog")
-    if not locs:
-        return None, "未偵測到人臉，請正面面向鏡頭"
-    if len(locs) > 1:
-        return None, "偵測到多於一張人臉，請確保只有您在鏡頭前"
+        encodings = face_recognition.face_encodings(rgb, locations)
+        if not encodings:
+            return None, None, "Face encoding failed. Please scan again."
+        return encodings[0], "legacy_face_recognition", None
 
-    encs = face_recognition.face_encodings(rgb, locs)
-    return encs[0], None
+    crop, error = detect_single_face(frame)
+    if error:
+        return None, None, error
+    return encode_face_crop(crop), "face_signature", None
 
-# ─── API helpers ─────────────────────────────────────────────────────────────
 
-def api_register(name: str, phone: str, face_id: str) -> dict:
-    r = requests.post(f"{API_URL}/users/register",
-                      json={"name": name, "phone": phone, "face_id": face_id},
-                      timeout=5)
-    r.raise_for_status()
-    return r.json()
+def api_register(name, phone, face_id):
+    response = requests.post(
+        f"{API_URL}/users/register",
+        json={"name": name, "phone": phone, "face_id": face_id},
+        timeout=5,
+    )
+    response.raise_for_status()
+    return response.json()
 
-def api_get_user_by_face(face_id: str) -> dict | None:
+
+def api_get_user_by_face(face_id):
     try:
-        r = requests.get(f"{API_URL}/users/by-face/{face_id}", timeout=5)
-        if r.status_code == 404:
+        response = requests.get(f"{API_URL}/users/by-face/{face_id}", timeout=5)
+        if response.status_code == 404:
             return None
-        r.raise_for_status()
-        return r.json()
+        response.raise_for_status()
+        return response.json()
     except Exception:
         return None
 
-def api_join_queue(user_id: str, zone_id: str) -> dict:
-    r = requests.post(f"{API_URL}/queue/join",
-                      json={"user_id": user_id, "zone_id": zone_id},
-                      timeout=5)
-    r.raise_for_status()
-    return r.json()
 
-def api_get_zones() -> list:
+def api_join_queue(user_id, zone_id):
+    response = requests.post(
+        f"{API_URL}/queue/join",
+        json={"user_id": user_id, "zone_id": zone_id},
+        timeout=5,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def api_get_zones():
     try:
-        r = requests.get(f"{API_URL}/zones", timeout=3)
-        return r.json()
+        response = requests.get(f"{API_URL}/zones", timeout=3)
+        response.raise_for_status()
+        return response.json()
     except Exception:
         return []
 
-def api_session_enter(face_id: str, zone_id: str, queue_id: str | None = None) -> dict:
-    """POST /session/enter — start a timed session after entering the zone."""
-    r = requests.post(f"{API_URL}/session/enter",
-                      json={"face_id": face_id, "zone_id": zone_id, "queue_id": queue_id},
-                      timeout=5)
-    r.raise_for_status()
-    return r.json()
 
-def api_session_extend(session_id: str) -> dict:
-    """POST /session/extend — extend the current session (max 2 extensions)."""
-    r = requests.post(f"{API_URL}/session/extend",
-                      json={"session_id": session_id},
-                      timeout=5)
-    r.raise_for_status()
-    return r.json()
+def api_session_enter(face_id, zone_id, queue_id=None):
+    response = requests.post(
+        f"{API_URL}/session/enter",
+        json={"face_id": face_id, "zone_id": zone_id, "queue_id": queue_id},
+        timeout=5,
+    )
+    response.raise_for_status()
+    return response.json()
 
-def api_get_active_sessions() -> list:
-    """GET /sessions/active — get all active sessions."""
+
+def api_session_extend(session_id):
+    response = requests.post(
+        f"{API_URL}/session/extend",
+        json={"session_id": session_id},
+        timeout=5,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def api_get_active_sessions():
     try:
-        r = requests.get(f"{API_URL}/sessions/active", timeout=3)
-        return r.json()
+        response = requests.get(f"{API_URL}/sessions/active", timeout=3)
+        response.raise_for_status()
+        return response.json()
     except Exception:
         return []
 
-# ─── Kiosk UI ────────────────────────────────────────────────────────────────
 
 class BridgeSpaceKiosk(tk.Tk):
-    """Full-screen touch-friendly kiosk application."""
-
-    BG    = "#0F172A"
-    CARD  = "#1E293B"
-    BLUE  = "#3B82F6"
+    BG = "#0F172A"
+    CARD = "#1E293B"
+    BLUE = "#3B82F6"
     GREEN = "#22C55E"
-    RED   = "#EF4444"
+    RED = "#EF4444"
     AMBER = "#F59E0B"
     WHITE = "#F1F5F9"
-    GRAY  = "#64748B"
-    FONT_TITLE  = ("PingFang TC", 32, "bold")
-    FONT_LARGE  = ("PingFang TC", 24)
-    FONT_MEDIUM = ("PingFang TC", 18)
-    FONT_SMALL  = ("PingFang TC", 14)
+    GRAY = "#64748B"
+    FONT_TITLE = ("Segoe UI", 28, "bold")
+    FONT_LARGE = ("Segoe UI", 20)
+    FONT_MEDIUM = ("Segoe UI", 16)
+    FONT_SMALL = ("Segoe UI", 12)
 
     def __init__(self):
         super().__init__()
-        self.title("BridgeSpace 智能入場系統")
+        self.title("BridgeSpace SmartGate")
         self.configure(bg=self.BG)
         self.attributes("-fullscreen", True)
-        self.bind("<Escape>", lambda e: self.attributes("-fullscreen", False))
+        self.bind("<Escape>", lambda event: self.attributes("-fullscreen", False))
 
         self.cam = CameraThread(0)
         self.cam.start()
 
-        self._state = "home"       # home / scanning / register_form / queue_select / confirmed / session_active
+        self._state = "home"
         self._current_user = None
-        self._pending_encoding = None
-        self._pending_face_id = None
-        self._session_timer_id = None   # after() id for session countdown
-        self._active_session = None     # current session dict
+        self._active_session = None
+        self._session_timer_id = None
 
         self._build_ui()
         self._refresh_cam()
-
-    # ── UI builders ──────────────────────────────────────────────────────────
 
     def _build_ui(self):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        # Left: camera feed
         self.cam_label = tk.Label(self, bg=self.BG)
         self.cam_label.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
 
-        # Right: interaction panel
         self.panel = tk.Frame(self, bg=self.BG)
         self.panel.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
         self._show_home()
 
     def _clear_panel(self):
-        for w in self.panel.winfo_children():
-            w.destroy()
+        for widget in self.panel.winfo_children():
+            widget.destroy()
 
-    def _lbl(self, parent, text, font=None, color=None, **kwargs):
-        return tk.Label(parent, text=text,
-                        font=font or self.FONT_MEDIUM,
-                        fg=color or self.WHITE, bg=self.BG,
-                        wraplength=500, justify="left", **kwargs)
-
-    def _btn(self, parent, text, cmd, color=None, **kwargs):
-        color = color or self.BLUE
-        return tk.Button(parent, text=text, command=cmd,
-                         font=self.FONT_LARGE, fg=self.WHITE,
-                         bg=color, activebackground=color,
-                         relief="flat", cursor="hand2",
-                         padx=20, pady=14, **kwargs)
-
-    # ── Home screen ──────────────────────────────────────────────────────────
+    def _btn(self, parent, text, command, color=None):
+        return tk.Button(
+            parent,
+            text=text,
+            command=command,
+            font=self.FONT_LARGE,
+            fg=self.WHITE,
+            bg=color or self.BLUE,
+            activebackground=color or self.BLUE,
+            relief="flat",
+            cursor="hand2",
+            padx=20,
+            pady=14,
+        )
 
     def _show_home(self):
         self._state = "home"
         self._current_user = None
         self._clear_panel()
-        p = self.panel
+        panel = self.panel
 
-        tk.Label(p, text="🏃", font=("Arial", 60), bg=self.BG).pack(pady=(40, 10))
-        tk.Label(p, text="BridgeSpace", font=("PingFang TC", 38, "bold"),
-                 fg=self.WHITE, bg=self.BG).pack()
-        tk.Label(p, text="橋底智能社區運動中心", font=self.FONT_LARGE,
-                 fg=self.GRAY, bg=self.BG).pack(pady=(0, 40))
+        tk.Label(panel, text="BridgeSpace SmartGate", font=self.FONT_TITLE, fg=self.WHITE, bg=self.BG).pack(pady=(48, 8))
+        tk.Label(panel, text="Live kiosk for face scan, registration, and zone entry.", font=self.FONT_LARGE, fg=self.GRAY, bg=self.BG).pack(pady=(0, 28))
 
-        # Show zone occupancy
         zones = api_get_zones()
         if zones:
-            for z in zones:
-                pct = int(z["current_count"] / max(z["capacity"], 1) * 100)
-                color = self.GREEN if pct < 70 else (self.AMBER if pct < 90 else self.RED)
-                row = tk.Frame(p, bg=self.CARD)
+            for zone in zones:
+                pct = int(zone["current_count"] / max(zone["capacity"], 1) * 100)
+                color = self.GREEN if pct < 70 else self.AMBER if pct < 90 else self.RED
+                row = tk.Frame(panel, bg=self.CARD)
                 row.pack(fill="x", padx=10, pady=4)
-                tk.Label(row, text=z["name_zh"], font=self.FONT_SMALL,
-                         fg=self.WHITE, bg=self.CARD, anchor="w").pack(side="left", padx=12, pady=8)
-                tk.Label(row, text=f"{z['current_count']}/{z['capacity']} ({pct}%)",
-                         font=self.FONT_SMALL, fg=color, bg=self.CARD).pack(side="right", padx=12)
+                tk.Label(
+                    row,
+                    text=zone.get("name_en") or zone.get("name_zh") or zone["id"],
+                    font=self.FONT_SMALL,
+                    fg=self.WHITE,
+                    bg=self.CARD,
+                    anchor="w",
+                ).pack(side="left", padx=12, pady=8)
+                tk.Label(
+                    row,
+                    text=f'{zone["current_count"]}/{zone["capacity"]} ({pct}%)',
+                    font=self.FONT_SMALL,
+                    fg=color,
+                    bg=self.CARD,
+                ).pack(side="right", padx=12)
 
-        self._btn(p, "📷  掃描人臉 入場排隊", self._start_scan,
-                  color=self.BLUE).pack(fill="x", padx=10, pady=(30, 8))
-        self._btn(p, "✏️  首次登記", self._show_register_prompt,
-                  color=self.GRAY).pack(fill="x", padx=10, pady=8)
-
-    # ── Face scan ────────────────────────────────────────────────────────────
+        self._btn(panel, "Scan Face to Continue", self._start_scan, color=self.BLUE).pack(fill="x", padx=10, pady=(28, 8))
+        self._btn(panel, "First-Time Registration", self._show_register_prompt, color=self.GRAY).pack(fill="x", padx=10, pady=8)
 
     def _start_scan(self):
         self._state = "scanning"
         self._clear_panel()
-        p = self.panel
+        panel = self.panel
 
-        tk.Label(p, text="人臉掃描", font=self.FONT_TITLE,
-                 fg=self.WHITE, bg=self.BG).pack(pady=(60, 10))
-        tk.Label(p, text="請正面面向左方鏡頭\n保持 40–60 cm 距離",
-                 font=self.FONT_LARGE, fg=self.GRAY, bg=self.BG,
-                 justify="center").pack(pady=20)
+        tk.Label(panel, text="Scan Face to Continue", font=self.FONT_TITLE, fg=self.WHITE, bg=self.BG).pack(pady=(60, 10))
+        tk.Label(panel, text="Look straight at the camera and stay within 40 to 60 cm.", font=self.FONT_LARGE, fg=self.GRAY, bg=self.BG, justify="center").pack(pady=20)
 
-        self.scan_status = tk.Label(p, text="等待掃描中…", font=self.FONT_LARGE,
-                                    fg=self.AMBER, bg=self.BG)
+        self.scan_status = tk.Label(panel, text="Waiting for scan...", font=self.FONT_LARGE, fg=self.AMBER, bg=self.BG)
         self.scan_status.pack(pady=30)
 
-        self._btn(p, "← 返回", self._show_home, color=self.GRAY).pack(pady=20)
-
-        # Trigger scan after 1.5s
+        self._btn(panel, "Back", self._show_home, color=self.GRAY).pack(pady=20)
         self.after(1500, self._do_face_scan)
 
     def _do_face_scan(self):
         frame = self.cam.get_frame()
         if frame is None:
-            self.scan_status.config(text="鏡頭未就緒，請稍後再試", fg=self.RED)
+            self.scan_status.config(text="Camera is not ready. Please try again.", fg=self.RED)
             self.after(2000, self._show_home)
             return
 
-        encoding, err = capture_face_encoding(frame)
-        if err:
-            self.scan_status.config(text=err, fg=self.RED)
+        encoding, algorithm, error = capture_face_sample(frame)
+        if error:
+            self.scan_status.config(text=error, fg=self.RED)
             self.after(2500, self._start_scan)
             return
 
-        # Try to match against existing faces
-        face_id = face_db.match(encoding)
+        face_id = face_db.match(encoding, algorithm)
         if face_id:
             user = api_get_user_by_face(face_id)
             if user:
                 self._current_user = user
-                self.scan_status.config(text=f"✅  識別成功：{user['name']}", fg=self.GREEN)
-                # Check if user has an active session — show timer instead of zone select
+                self.scan_status.config(text=f"Scan successful: {user['name']}", fg=self.GREEN)
                 active = api_get_active_sessions()
-                user_session = None
-                for s in active:
-                    if s.get("user_id") == user["id"]:
-                        user_session = s
-                        break
-                if user_session:
-                    self.after(1200, lambda: self._show_session_started(
-                        user_session["zone_id"],
-                        {
-                            "session_id": user_session.get("id"),
-                            "remaining_seconds": max(60, int(user_session.get("remaining_seconds", 60))),
-                            "extensions": user_session.get("extended", 0),
-                        }
-                    ))
+                existing_session = next((session for session in active if session.get("user_id") == user["id"]), None)
+                if existing_session:
+                    self.after(1200, lambda: self._show_session_started(existing_session["zone_id"], existing_session))
                 else:
                     self.after(1200, self._show_zone_select)
                 return
 
-        # No match — offer to register
-        self._pending_encoding = encoding
-        self._pending_face_id = None
-        self.scan_status.config(text="未找到您的記錄，請先登記", fg=self.AMBER)
+        self.scan_status.config(text="Face not found. Please register first.", fg=self.AMBER)
         self.after(1500, self._show_register_prompt)
-
-    # ── Register ─────────────────────────────────────────────────────────────
 
     def _show_register_prompt(self):
         self._state = "register_form"
         self._clear_panel()
-        p = self.panel
+        panel = self.panel
 
-        tk.Label(p, text="首次登記", font=self.FONT_TITLE,
-                 fg=self.WHITE, bg=self.BG).pack(pady=(40, 20))
-        tk.Label(p, text="請輸入您的資料。登記後下次到訪\n直接掃臉即可，無需重新輸入。",
-                 font=self.FONT_MEDIUM, fg=self.GRAY, bg=self.BG,
-                 justify="center").pack(pady=(0, 20))
+        tk.Label(panel, text="First-Time Registration", font=self.FONT_TITLE, fg=self.WHITE, bg=self.BG).pack(pady=(40, 20))
+        tk.Label(panel, text="Enter your details. A fresh face scan will be captured when you submit.", font=self.FONT_MEDIUM, fg=self.GRAY, bg=self.BG, justify="center").pack(pady=(0, 20))
 
-        frm = tk.Frame(p, bg=self.BG)
-        frm.pack(fill="x", padx=20)
+        form = tk.Frame(panel, bg=self.BG)
+        form.pack(fill="x", padx=20)
 
-        tk.Label(frm, text="姓名", font=self.FONT_MEDIUM, fg=self.WHITE, bg=self.BG,
-                 anchor="w").pack(fill="x")
+        tk.Label(form, text="Name", font=self.FONT_MEDIUM, fg=self.WHITE, bg=self.BG, anchor="w").pack(fill="x")
         self.name_var = tk.StringVar()
-        name_entry = ttk.Entry(frm, textvariable=self.name_var, font=self.FONT_MEDIUM)
-        name_entry.pack(fill="x", pady=(4, 16))
+        ttk.Entry(form, textvariable=self.name_var, font=self.FONT_MEDIUM).pack(fill="x", pady=(4, 16))
 
-        tk.Label(frm, text="電話號碼", font=self.FONT_MEDIUM, fg=self.WHITE, bg=self.BG,
-                 anchor="w").pack(fill="x")
+        tk.Label(form, text="Phone", font=self.FONT_MEDIUM, fg=self.WHITE, bg=self.BG, anchor="w").pack(fill="x")
         self.phone_var = tk.StringVar()
-        ttk.Entry(frm, textvariable=self.phone_var, font=self.FONT_MEDIUM).pack(fill="x", pady=(4, 16))
+        ttk.Entry(form, textvariable=self.phone_var, font=self.FONT_MEDIUM).pack(fill="x", pady=(4, 16))
 
-        self.reg_status = tk.Label(p, text="", font=self.FONT_MEDIUM,
-                                   fg=self.RED, bg=self.BG)
+        self.reg_status = tk.Label(panel, text="", font=self.FONT_MEDIUM, fg=self.RED, bg=self.BG)
         self.reg_status.pack(pady=10)
 
-        self._btn(p, "📷  拍攝人臉並提交", self._submit_registration,
-                  color=self.GREEN).pack(fill="x", padx=20, pady=8)
-        self._btn(p, "← 返回", self._show_home, color=self.GRAY).pack(fill="x", padx=20)
+        self._btn(panel, "Capture Face and Register", self._submit_registration, color=self.GREEN).pack(fill="x", padx=20, pady=8)
+        self._btn(panel, "Back", self._show_home, color=self.GRAY).pack(fill="x", padx=20)
 
     def _submit_registration(self):
         name = self.name_var.get().strip()
         phone = self.phone_var.get().strip()
 
         if not name or not phone:
-            self.reg_status.config(text="請填寫所有欄$��")
+            self.reg_status.config(text="Please fill in every field.", fg=self.RED)
             return
         if len(phone) < 8:
-            self.reg_status.config(text="請輸入有效電話號碼")
+            self.reg_status.config(text="Please enter a valid phone number.", fg=self.RED)
             return
 
-        self.reg_status.config(text="正在拍攝人臉…", fg=self.AMBER)
+        self.reg_status.config(text="Capturing face sample...", fg=self.AMBER)
         self.after(800, lambda: self._capture_and_register(name, phone))
 
-    def _capture_and_register(self, name: str, phone: str):
+    def _capture_and_register(self, name, phone):
         frame = self.cam.get_frame()
         if frame is None:
-            self.reg_status.config(text="鏡頭未就緒", fg=self.RED)
+            self.reg_status.config(text="Camera is not ready.", fg=self.RED)
             return
 
-        encoding, err = capture_face_encoding(frame)
-        if err:
-            self.reg_status.config(text=err, fg=self.RED)
+        encoding, algorithm, error = capture_face_sample(frame)
+        if error:
+            self.reg_status.config(text=error, fg=self.RED)
             return
 
-        # Check not already in DB
-        if face_db.match(encoding, tolerance=0.45):
-            self.reg_status.config(text="此人臉已登記，請掃臉入場", fg=self.AMBER)
-            self.after(2000, self._show_home)
+        if face_db.match(encoding, algorithm, tolerance=0.45):
+            self.reg_status.config(text="This face is already registered. Please scan instead.", fg=self.AMBER)
+            self.after(1800, self._show_home)
             return
 
-        import uuid
         face_id = str(uuid.uuid4())[:12]
         try:
             result = api_register(name, phone, face_id)
-            face_db.add(face_id, encoding)
+            face_db.add(face_id, encoding, algorithm)
             self._current_user = {
                 "id": result["user_id"],
                 "name": name,
                 "phone": phone,
                 "face_id": face_id,
             }
-            self._pending_encoding = None
-            self.reg_status.config(text=f"✅ 登記成功！歡迎 {name}", fg=self.GREEN)
+            self.reg_status.config(text=f"Registration complete: {name}", fg=self.GREEN)
             self.after(1200, self._show_zone_select)
-        except Exception as e:
-            self.reg_status.config(text=f"登記失敗：{e}", fg=self.RED)
-
-    # ── Zone selection ───────────────────────────────────────────────────────
+        except Exception as exc:
+            self.reg_status.config(text=f"Registration failed: {exc}", fg=self.RED)
 
     def _show_zone_select(self):
         self._state = "queue_select"
         self._clear_panel()
-        p = self.panel
-        name = self._current_user.get("name", "用戶")
+        panel = self.panel
+        user_name = self._current_user.get("name", "Guest")
 
-        tk.Label(p, text=f"歡迎，{name}！", font=self.FONT_TITLE,
-                 fg=self.GREEN, bg=self.BG).pack(pady=(40, 6))
-        tk.Label(p, text="請選擇您想使用的區域排隊",
-                 font=self.FONT_LARGE, fg=self.GRAY, bg=self.BG).pack(pady=(0, 30))
+        tk.Label(panel, text=f"Welcome, {user_name}", font=self.FONT_TITLE, fg=self.GREEN, bg=self.BG).pack(pady=(40, 6))
+        tk.Label(panel, text="Choose the zone you want to use today.", font=self.FONT_LARGE, fg=self.GRAY, bg=self.BG).pack(pady=(0, 30))
 
         zones = api_get_zones()
-        zone_map = {z["id"]: z for z in zones}
+        zone_map = {zone["id"]: zone for zone in zones}
 
-        for zone_id, zone_name in ZONES:
-            z = zone_map.get(zone_id, {})
-            count = z.get("current_count", 0)
-            cap   = z.get("capacity", 30)
-            pct   = int(count / max(cap, 1) * 100)
-            status = z.get("status", "open")
+        for zone_id, zone_label in ZONES:
+            zone = zone_map.get(zone_id, {})
+            count = zone.get("current_count", 0)
+            capacity = zone.get("capacity", 30)
+            status = zone.get("status", "open")
 
             if status == "full":
-                state = "disabled"
-                label = f"{zone_name}\n🔴 已滿 ({count}/{cap})"
-                bg = self.GRAY
+                button_state = "disabled"
+                button_color = self.GRAY
+                label = f"{zone_label}\nFull ({count}/{capacity})"
             elif status == "busy":
-                state = "normal"
-                label = f"{zone_name}\n🟡 繁忙 ({count}/{cap})"
-                bg = self.AMBER
+                button_state = "normal"
+                button_color = self.AMBER
+                label = f"{zone_label}\nBusy ({count}/{capacity})"
             else:
-                state = "normal"
-                label = f"{zone_name}\n🟢 空閒 ({count}/{cap})"
-                bg = self.BLUE
+                button_state = "normal"
+                button_color = self.BLUE
+                label = f"{zone_label}\nOpen ({count}/{capacity})"
 
-            tk.Button(p, text=label, command=lambda zid=zone_id: self._join_queue(zid),
-                      font=self.FONT_MEDIUM, fg=self.WHITE, bg=bg,
-                      activebackground=bg, relief="flat", cursor="hand2",
-                      padx=20, pady=16, state=state,
-                      justify="center").pack(fill="x", padx=10, pady=6)
+            tk.Button(
+                panel,
+                text=label,
+                command=lambda selected=zone_id: self._join_queue(selected),
+                font=self.FONT_MEDIUM,
+                fg=self.WHITE,
+                bg=button_color,
+                activebackground=button_color,
+                relief="flat",
+                cursor="hand2",
+                padx=20,
+                pady=16,
+                state=button_state,
+                justify="center",
+            ).pack(fill="x", padx=10, pady=6)
 
-        self._btn(p, "← 返回首頁", self._show_home, color=self.GRAY).pack(pady=20)
+        self._btn(panel, "Back to Home", self._show_home, color=self.GRAY).pack(pady=20)
 
-    def _join_queue(self, zone_id: str):
+    def _join_queue(self, zone_id):
         try:
             result = api_join_queue(self._current_user["id"], zone_id)
-            walk_in = result.get("walk_in", False)
-            if walk_in:
-                # Direct entry — start session immediately
-                try:
-                    sess = api_session_enter(self._current_user["face_id"], zone_id)
-                    self._show_session_started(zone_id, sess)
-                except Exception:
-                    # Session API failed, still show queue confirmation
-                    self._show_confirmed(zone_id, result["queue_num"], walk_in=True)
+            if result.get("walk_in"):
+                session = api_session_enter(self._current_user["face_id"], zone_id)
+                self._show_session_started(zone_id, session)
             else:
                 self._show_confirmed(zone_id, result["queue_num"], walk_in=False)
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 400:
-                messagebox.showwarning("提示", "悢添岣�Ս�域排隊，請等候叫號")
+        except requests.exceptions.HTTPError as exc:
+            if exc.response.status_code == 400:
+                messagebox.showwarning("BridgeSpace", "This user is already waiting for that zone.")
             else:
-                messagebox.showerror("錯誤", str(e))
-        except Exception as e:
-            messagebox.showerror("錯誤", str(e))
+                messagebox.showerror("BridgeSpace", str(exc))
+        except Exception as exc:
+            messagebox.showerror("BridgeSpace", str(exc))
 
-    # ── Confirmed screen ─────────────────────────────────────────────────────
-
-    def _show_confirmed(self, zone_id: str, queue_num: int, walk_in: bool = False):
+    def _show_confirmed(self, zone_id, queue_num, walk_in=False):
         self._state = "confirmed"
         self._clear_panel()
-        p = self.panel
-
-        zone_name = dict(ZONES).get(zone_id, zone_id)
+        panel = self.panel
+        zone_label = dict(ZONES).get(zone_id, zone_id)
 
         if walk_in:
-            tk.Label(p, text="🎉", font=("Arial", 72), bg=self.BG).pack(pady=(50, 0))
-            tk.Label(p, text="直接入場！", font=self.FONT_TITLE,
-                     fg=self.GREEN, bg=self.BG).pack(pady=10)
-            card = tk.Frame(p, bg=self.CARD)
-            card.pack(fill="x", padx=20, pady=20)
-            tk.Label(card, text=f"區域：{zone_name}", font=self.FONT_LARGE,
-                     fg=self.WHITE, bg=self.CARD).pack(pady=(16, 6))
-            tk.Label(card, text="該區域有空位，您可直接入場！\n閘門將自動開啟",
-                     font=self.FONT_MEDIUM, fg=self.GREEN, bg=self.CARD,
-                     justify="center").pack(pady=(10, 16))
+            tk.Label(panel, text="Walk-In Approved", font=self.FONT_TITLE, fg=self.GREEN, bg=self.BG).pack(pady=(50, 8))
+            tk.Label(panel, text=f"Proceed directly to {zone_label}.", font=self.FONT_LARGE, fg=self.WHITE, bg=self.BG).pack(pady=(0, 16))
+            tk.Label(panel, text="Your session timer has already started.", font=self.FONT_MEDIUM, fg=self.GRAY, bg=self.BG).pack(pady=(0, 20))
         else:
-            tk.Label(p, text="✅", font=("Arial", 72), bg=self.BG).pack(pady=(50, 0))
-            tk.Label(p, text="已加入排隊！", font=self.FONT_TITLE,
-                     fg=self.GREEN, bg=self.BG).pack(pady=10)
-            card = tk.Frame(p, bg=self.CARD)
+            tk.Label(panel, text="Queue Joined", font=self.FONT_TITLE, fg=self.GREEN, bg=self.BG).pack(pady=(50, 8))
+            card = tk.Frame(panel, bg=self.CARD)
             card.pack(fill="x", padx=20, pady=20)
-            tk.Label(card, text=f"區域：{zone_name}", font=self.FONT_LARGE,
-                     fg=self.WHITE, bg=self.CARD).pack(pady=(16, 6))
-            tk.Label(card, text="您的號碼", font=self.FONT_MEDIUM,
-                     fg=self.GRAY, bg=self.CARD).pack()
-            tk.Label(card, text=str(queue_num), font=("PingFang TC", 80, "bold"),
-                     fg=self.AMBER, bg=self.CARD).pack(pady=10)
-            tk.Label(card, text="請留意顯示屏上的叫號\n叫號後請於15分鐘內入場",
-                     font=self.FONT_MEDIUM, fg=self.GRAY, bg=self.CARD,
-                     justify="center").pack(pady=(0, 16))
+            tk.Label(card, text=f"Zone: {zone_label}", font=self.FONT_LARGE, fg=self.WHITE, bg=self.CARD).pack(pady=(16, 6))
+            tk.Label(card, text="Queue Number", font=self.FONT_MEDIUM, fg=self.GRAY, bg=self.CARD).pack()
+            tk.Label(card, text=str(queue_num), font=("Segoe UI", 64, "bold"), fg=self.AMBER, bg=self.CARD).pack(pady=10)
+            tk.Label(card, text="Watch the dashboard. Once called, enter within 15 minutes.", font=self.FONT_MEDIUM, fg=self.GRAY, bg=self.CARD, justify="center").pack(pady=(0, 16))
 
-        self._btn(p, "完成，返回首頁", lambda: self.after(0, self._show_home),
-                  color=self.BLUE).pack(fill="x", padx=20, pady=10)
+        self._btn(panel, "Done", self._show_home, color=self.BLUE).pack(fill="x", padx=20, pady=10)
 
-    # ── Session started screen ──────────────────────────────────────────────
-
-    def _show_session_started(self, zone_id: str, session_info: dict):
-        """Show session timer screen after entering the zone."""
+    def _show_session_started(self, zone_id, session_info):
         self._state = "session_active"
-        remaining_seconds = session_info.get("remaining_seconds")
-        if remaining_seconds is None:
-            remaining_seconds = session_info.get("duration_min", 45) * 60
+        if self._session_timer_id is not None:
+            self.after_cancel(self._session_timer_id)
+            self._session_timer_id = None
 
+        remaining_seconds = self._resolve_remaining_seconds(session_info)
         self._active_session = {
-            "session_id": session_info.get("session_id"),
+            "session_id": session_info.get("session_id") or session_info.get("id"),
             "zone_id": zone_id,
             "user_id": self._current_user["id"],
             "face_id": self._current_user.get("face_id"),
-            "duration_min": max(1, int((remaining_seconds + 59) / 60)),
             "remaining_seconds": remaining_seconds,
-            "extensions": session_info.get("extensions", 0),
+            "extensions": session_info.get("extensions", session_info.get("extended", 0)),
             "max_extensions": 2,
             "start_time": time.time(),
         }
+
         self._clear_panel()
-        p = self.panel
+        panel = self.panel
+        zone_label = dict(ZONES).get(zone_id, zone_id)
 
-        zone_name = dict(ZONES).get(zone_id, zone_id)
+        tk.Label(panel, text="Session Started", font=self.FONT_TITLE, fg=self.GREEN, bg=self.BG).pack(pady=(30, 4))
+        tk.Label(panel, text=f"Zone: {zone_label}", font=self.FONT_LARGE, fg=self.WHITE, bg=self.BG).pack(pady=(0, 20))
 
-        tk.Label(p, text="🏟️", font=("Arial", 60), bg=self.BG).pack(pady=(30, 0))
-        tk.Label(p, text="場次已開始", font=self.FONT_TITLE,
-                 fg=self.GREEN, bg=self.BG).pack(pady=(6, 4))
-        tk.Label(p, text=f"區域：{zone_name}", font=self.FONT_LARGE,
-                 fg=self.WHITE, bg=self.BG).pack(pady=(0, 20))
-
-        # Timer card
-        timer_card = tk.Frame(p, bg=self.CARD)
+        timer_card = tk.Frame(panel, bg=self.CARD)
         timer_card.pack(fill="x", padx=20, pady=10)
-
-        tk.Label(timer_card, text="剩餘時間", font=self.FONT_MEDIUM,
-                 fg=self.GRAY, bg=self.CARD).pack(pady=(16, 4))
-        self.session_timer_lbl = tk.Label(timer_card, text="--:--",
-                                          font=("Courier", 64, "bold"),
-                                          fg=self.GREEN, bg=self.CARD)
+        tk.Label(timer_card, text="Remaining Time", font=self.FONT_MEDIUM, fg=self.GRAY, bg=self.CARD).pack(pady=(16, 4))
+        self.session_timer_lbl = tk.Label(timer_card, text="--:--", font=("Consolas", 56, "bold"), fg=self.GREEN, bg=self.CARD)
         self.session_timer_lbl.pack(pady=10)
+        tk.Label(
+            timer_card,
+            text=f"Extensions used: {self._active_session['extensions']}/{self._active_session['max_extensions']}",
+            font=self.FONT_SMALL,
+            fg=self.GRAY,
+            bg=self.CARD,
+        ).pack(pady=(0, 16))
 
-        dur = self._active_session["duration_min"]
-        ext = self._active_session["extensions"]
-        tk.Label(timer_card, text=f"場次時長 {dur} 分鐘  |  已續時 {ext}/2 次",
-                 font=self.FONT_SMALL, fg=self.GRAY, bg=self.CARD).pack(pady=(0, 16))
-
-        # Extension button
-        self.extend_btn = self._btn(p, "⏱  續時 (再加 15 分鐘)", self._extend_session,
-                                     color=self.AMBER)
+        self.extend_btn = self._btn(panel, "Extend Session", self._extend_session, color=self.AMBER)
         self.extend_btn.pack(fill="x", padx=20, pady=(16, 8))
-        if ext >= 2:
-            self.extend_btn.config(state="disabled", text="已達最大續時次數")
+        if self._active_session["extensions"] >= self._active_session["max_extensions"]:
+            self.extend_btn.config(state="disabled", text="No Extensions Remaining")
 
-        # Info text
-        tk.Label(p, text="⚠️ 到時後燈光將關閉，設備會自動收起\n請在時間結束前完成活動或續時",
-                 font=self.FONT_SMALL, fg=self.GRAY, bg=self.BG,
-                 justify="center").pack(pady=(8, 4))
+        tk.Label(
+            panel,
+            text="The system will warn before expiry and lock the zone if the session expires.",
+            font=self.FONT_SMALL,
+            fg=self.GRAY,
+            bg=self.BG,
+            justify="center",
+        ).pack(pady=(8, 4))
 
-        self._btn(p, "完成，返回首頁", lambda: self.after(0, self._show_home),
-                  color=self.GRAY).pack(fill="x", padx=20, pady=8)
-
-        # Start countdown timer
+        self._btn(panel, "Back to Home", self._show_home, color=self.GRAY).pack(fill="x", padx=20, pady=8)
         self._tick_session_timer()
 
+    def _resolve_remaining_seconds(self, session_info):
+        if session_info.get("remaining_seconds") is not None:
+            return max(0, int(session_info["remaining_seconds"]))
+        if session_info.get("expires_at"):
+            return max(0, int((datetime.fromisoformat(session_info["expires_at"]) - datetime.now()).total_seconds()))
+        return max(60, int(session_info.get("duration_min", 45) * 60))
+
     def _tick_session_timer(self):
-        """Update session countdown every second."""
         if self._state != "session_active" or not self._active_session:
             return
-        sess = self._active_session
-        elapsed = time.time() - sess["start_time"]
-        remaining = sess["remaining_seconds"] - elapsed
 
+        elapsed = time.time() - self._active_session["start_time"]
+        remaining = self._active_session["remaining_seconds"] - elapsed
         if remaining <= 0:
             self.session_timer_lbl.config(text="00:00", fg=self.RED)
             return
-        elif remaining <= 300:  # 5 minutes warning
+
+        if remaining <= 300:
             self.session_timer_lbl.config(fg=self.RED)
-        elif remaining <= 600:  # 10 minutes
+        elif remaining <= 600:
             self.session_timer_lbl.config(fg=self.AMBER)
         else:
             self.session_timer_lbl.config(fg=self.GREEN)
 
-        mins = int(remaining) // 60
-        secs = int(remaining) % 60
-        self.session_timer_lbl.config(text=f"{mins:02d}:{secs:02d}")
+        minutes = int(remaining) // 60
+        seconds = int(remaining) % 60
+        self.session_timer_lbl.config(text=f"{minutes:02d}:{seconds:02d}")
         self._session_timer_id = self.after(1000, self._tick_session_timer)
 
     def _extend_session(self):
-        """Request session extension from server."""
-        if not self._active_session:
+        if not self._active_session or not self._active_session.get("session_id"):
+            messagebox.showwarning("BridgeSpace", "There is no active session to extend.")
             return
-        sess = self._active_session
-        if not sess.get("session_id"):
-            messagebox.showwarning("提示", "目前沒有可續時的有效 session")
-            return
-        try:
-            result = api_session_extend(sess["session_id"])
-            extensions_remaining = result.get("extensions_remaining")
-            ext_count = (
-                sess["max_extensions"] - extensions_remaining
-                if extensions_remaining is not None
-                else sess["extensions"] + 1
-            )
-            self._show_session_started(sess["zone_id"], {
-                "session_id": sess["session_id"],
-                "remaining_seconds": max(0, int(sess["remaining_seconds"] - (time.time() - sess["start_time"]))) + 15 * 60,
-                "extensions": ext_count,
-            })
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 400:
-                resp = e.response.json() if e.response.text else {}
-                reason = resp.get("detail", "無法續時")
-                messagebox.showwarning("提示", reason)
-            else:
-                messagebox.showerror("錯誤", str(e))
-        except Exception as e:
-            messagebox.showerror("錯誤", str(e))
 
-    # ── Camera refresh ───────────────────────────────────────────────────────
+        try:
+            result = api_session_extend(self._active_session["session_id"])
+            self._show_session_started(self._active_session["zone_id"], result | {"session_id": self._active_session["session_id"]})
+        except requests.exceptions.HTTPError as exc:
+            if exc.response.status_code == 400:
+                detail = exc.response.json().get("detail", "Unable to extend the session.")
+                messagebox.showwarning("BridgeSpace", detail)
+            else:
+                messagebox.showerror("BridgeSpace", str(exc))
+        except Exception as exc:
+            messagebox.showerror("BridgeSpace", str(exc))
 
     def _refresh_cam(self):
         frame = self.cam.get_frame()
         if frame is not None:
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(rgb)
-            # Resize to fit panel (~600px wide)
-            w, h = img.size
-            target_w = 560
-            img = img.resize((target_w, int(h * target_w / w)), Image.LANCZOS)
+            display_frame = frame.copy()
 
-            # Draw face detection overlay
             if MEDIAPIPE_OK and self._state in ("scanning", "register_form"):
-                img_arr = np.array(img)
-                with mp_face_detection.FaceDetection(min_detection_confidence=0.6) as fd:
-                    results = fd.process(img_arr)
-                    if results.detections:
-                        for det in results.detections:
-                            bb = det.location_data.relative_bounding_box
-                            x = int(bb.xmin * target_w)
-                            y = int(bb.ymin * img.size[1])
-                            w2 = int(bb.width * target_w)
-                            h2 = int(bb.height * img.size[1])
-                            cv2.rectangle(img_arr, (x, y), (x + w2, y + h2), (34, 197, 94), 3)
-                img = Image.fromarray(img_arr)
+                rgb = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+                with mp_face_detection.FaceDetection(min_detection_confidence=0.6) as detector:
+                    results = detector.process(rgb)
+                for detection in results.detections or []:
+                    rel = detection.location_data.relative_bounding_box
+                    x = int(rel.xmin * display_frame.shape[1])
+                    y = int(rel.ymin * display_frame.shape[0])
+                    w = int(rel.width * display_frame.shape[1])
+                    h = int(rel.height * display_frame.shape[0])
+                    cv2.rectangle(display_frame, (x, y), (x + w, y + h), (34, 197, 94), 3)
 
-            photo = ImageTk.PhotoImage(img)
+            rgb = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(rgb)
+            width, height = image.size
+            target_width = 560
+            image = image.resize((target_width, int(height * target_width / width)), Image.LANCZOS)
+            photo = ImageTk.PhotoImage(image)
             self.cam_label.config(image=photo)
             self.cam_label.image = photo
 
-        self.after(33, self._refresh_cam)   # ~30fps
+        self.after(33, self._refresh_cam)
 
     def on_close(self):
         self.cam.stop()
         self.destroy()
 
 
-# ─── Entry point ─────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--api", default="http://localhost:8000")
     args = parser.parse_args()

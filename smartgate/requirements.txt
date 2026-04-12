@@ -1,11 +1,8 @@
-# SmartGate — face recognition kiosk dependencies
-# DeepFace replaces face_recognition (dlib) for Apple Silicon compatibility.
-# On first run, DeepFace auto-downloads the FaceNet weights (~90 MB).
+# SmartGate kiosk dependencies
+# Optional legacy support: install `face-recognition` manually if a local dlib build is available.
 
-deepface>=0.0.93          # primary face recognition backend (FaceNet)
-mediapipe>=0.10.0         # real-time face detection overlay only
-opencv-python>=4.9.0      # webcam capture + image processing
-pillow>=10.0.0            # Tkinter-compatible image display
-requests>=2.31.0          # REST calls to backend API
-numpy>=1.24.0             # embedding arithmetic
-tf-keras>=2.16.0          # required by DeepFace on newer TF versions
+mediapipe>=0.10.0
+opencv-python>=4.9.0
+pillow>=10.0.0
+requests>=2.31.0
+numpy>=1.24.0

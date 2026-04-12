@@ -19,8 +19,14 @@
 | 2026-04-12 17:53 | Rebuilt broken queue panel component and restored frontend production build | `frontend/src/components/QueueBoard.jsx` | `npm run build` |
 | 2026-04-12 17:45 | Published completion branch to GitHub | branch `codex/v2-finish` | `git push -u origin codex/v2-finish` |
 | 2026-04-12 17:46 | Opened draft PR for v2.0 completion handoff | PR `#1` | GitHub draft PR: `https://github.com/MMARCOO1313/com1002/pull/1` |
+| 2026-04-12 17:58 | Performed live feasibility check on backend and frontend | local runtime only | backend served on `8010`; frontend served on `4173` |
+| 2026-04-12 18:00 | Performed code review and identified remaining blockers | `backend/main.py`, `smartgate/kiosk.py`, `smartgate/requirements.txt`, `frontend/*` | review findings recorded in chat |
+| 2026-04-12 18:17 | Added regression tests for zone catalog, SmartGate face fallback, and user-facing copy | `backend/tests/*`, `smartgate/tests/*`, `tests/test_user_facing_copy.py` | `python -m unittest discover ...` |
+| 2026-04-12 18:24 | Fixed zone catalog normalization, cleaned backend/device/alert copy, and rebuilt SmartGate fallback recognition | `backend/main.py`, `backend/session_manager.py`, `backend/alert_engine.py`, `backend/auto_queue.py`, `backend/zone_catalog.py`, `smartgate/kiosk.py`, `smartgate/face_matching.py`, `smartgate/requirements.txt` | `python -m py_compile ...`, backend + API flow smoke test |
+| 2026-04-12 18:28 | Rebuilt dashboard copy and repaired frontend HTML title | `frontend/index.html`, `frontend/src/App.jsx`, `frontend/src/components/*` | `npm run build`, `python -m unittest discover -s tests -p 'test_*.py'`, live fetch from `4174` |
 
 ## Open Tasks
 
 - No open execution tasks.
 - If the PR is accepted, merge `codex/v2-finish` into `main`.
+- Review blockers from the 2026-04-12 check have been fixed and re-verified locally.
