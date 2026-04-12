@@ -1,11 +1,10 @@
 """
-SmartGate — Face Recognition Kiosk
-On-site self-service terminal for walk-in registration and queue joining.
-Uses DeepFace (FaceNet) as primary backend — compatible with M2 and Windows.
-MediaPipe provides real-time face detection overlay on the camera feed.
+SmartGate — Face Recognition Kiosk  v2.0  (Autonomous Edition)
+On-site self-service terminal for walk-in registration, queue joining,
+session entry, session extension, and live session timer display.
+Uses MediaPipe (faster, better M2 support) + face_recognition for embedding.
 
-Run (normal):  python kiosk.py --api http://localhost:8000
-Run (demo):    python kiosk.py --demo --api http://localhost:8000
+Run:  python kiosk.py --api http://localhost:8000
 """
 
 import cv2
@@ -18,45 +17,28 @@ import json
 import os
 import pickle
 import time
+import datetime
 from pathlib import Path
 from PIL import Image, ImageTk
 
-# ─── Face recognition backend ────────────────────────────────────────────────
-# DeepFace wraps FaceNet/ArcFace with a clean API and works on Apple Silicon
-# without the dlib/cmake architecture issues.  pip install deepface
 try:
-    from deepface import DeepFace
-    FACE_LIB    = "deepface"
-    DEEPFACE_MODEL   = "Facenet"    # 128-d embeddings; fast, accurate, small
-    DEEPFACE_BACKEND = "opencv"     # fast detector, good M2 support
-    print("[SmartGate] Using DeepFace (FaceNet + OpenCV detector) for face recognition")
+    import face_recognition
+    FACE_LIB = "face_recognition"
 except ImportError:
-    FACE_LIB    = None
-    DEEPFACE_MODEL   = None
-    DEEPFACE_BACKEND = None
-    print("[SmartGate] DeepFace not found — run: pip install deepface")
+    FACE_LIB = None
+    print("[SmartGate] face_recognition not found — using MediaPipe fallback")
 
-# MediaPipe: real-time bounding-box overlay only (does NOT store embeddings)
 try:
     import mediapipe as mp
     mp_face_detection = mp.solutions.face_detection
     MEDIAPIPE_OK = True
-except (ImportError, AttributeError):
+except ImportError:
     MEDIAPIPE_OK = False
-    print("[SmartGate] MediaPipe face overlay disabled (API not available)")
-    print("[SmartGate] MediaPipe not found — face overlay disabled")
+    print("[SmartGate] MediaPipe not found — basic OpenCV face detection will be used")
 
-# ─── Config ──────────────────────────────────────────────────────────────────
+# ─── Config ─────────────────────────────────────────────────────────────────
 
-import argparse as _ap
-_parser = _ap.ArgumentParser(add_help=False)
-_parser.add_argument("--api",  default=os.environ.get("BRIDGESPACE_API", "http://localhost:8000"))
-_parser.add_argument("--demo", action="store_true", help="Demo mode: no camera required")
-_parser.add_argument("--cam",  default="0", help="Camera index or video path")
-_args, _ = _parser.parse_known_args()
-
-API_URL      = _args.api
-DEMO_MODE    = _args.demo
+API_URL      = os.environ.get("BRIDGESPACE_API", "http://localhost:8000")
 FACE_DB_PATH = Path(__file__).parent / "face_db"
 FACE_DB_PATH.mkdir(exist_ok=True)
 ENCODING_FILE = FACE_DB_PATH / "encodings.pkl"
@@ -91,26 +73,17 @@ class FaceDB:
         self.data[face_id] = encoding
         self._save()
 
-    def match(self, encoding: np.ndarray, tolerance: float = 0.40) -> str | None:
-        """Returns face_id of best match, or None if no close enough match.
-        Uses cosine distance (works with FaceNet 128-d or any embedding size).
-        tolerance=0.40 means ~cos-similarity ≥ 0.60 — tuned for FaceNet.
-        """
+    def match(self, encoding: np.ndarray, tolerance: float = 0.5) -> str | None:
+        """Returns face_id of best match or None."""
         if not self.data:
             return None
-        known_ids  = list(self.data.keys())
-        known_encs = np.array(list(self.data.values()), dtype=np.float32)
-
-        # Normalise to unit vectors then dot-product → cosine similarity
-        enc_norm     = encoding / (np.linalg.norm(encoding) + 1e-8)
-        norms        = np.linalg.norm(known_encs, axis=1, keepdims=True) + 1e-8
-        known_norm   = known_encs / norms
-        similarities = known_norm @ enc_norm          # shape (N,)
-        best_idx     = int(np.argmax(similarities))
-        best_dist    = 1.0 - float(similarities[best_idx])   # cosine distance
-
-        if best_dist <= tolerance:
-            return known_ids[best_idx]
+        known_ids = list(self.data.keys())
+        known_encs = list(self.data.values())
+        if FACE_LIB == "face_recognition":
+            distances = face_recognition.face_distance(known_encs, encoding)
+            best_idx = int(np.argmin(distances))
+            if distances[best_idx] <= tolerance:
+                return known_ids[best_idx]
         return None
 
 
@@ -119,57 +92,22 @@ face_db = FaceDB()
 # ─── Camera thread ───────────────────────────────────────────────────────────
 
 class CameraThread(threading.Thread):
-    def __init__(self, cam_src=0):
+    def __init__(self, cam_idx=0):
         super().__init__(daemon=True)
-        self.cam_src = cam_src
-        self.frame   = None
+        self.cam_idx = cam_idx
+        self.frame = None
         self.running = True
-        self._lock   = threading.Lock()
-        # Demo mode: generate synthetic frame with a smiley face
-        self._demo   = DEMO_MODE or (isinstance(cam_src, str) and cam_src == "demo")
+        self._lock = threading.Lock()
 
     def run(self):
-        if self._demo:
-            self._run_demo()
-            return
-        src = int(self.cam_src) if str(self.cam_src).isdigit() else self.cam_src
-        cap = cv2.VideoCapture(src)
+        cap = cv2.VideoCapture(self.cam_idx)
         while self.running:
             ret, frame = cap.read()
             if ret:
                 with self._lock:
                     self.frame = frame.copy()
-            else:
-                # Loop video file
-                if not str(self.cam_src).isdigit():
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            time.sleep(0.03)
+            time.sleep(0.03)  # ~30fps
         cap.release()
-
-    def _run_demo(self):
-        """Generate a synthetic camera frame (smiley + label) for demo."""
-        import math
-        t = 0
-        while self.running:
-            h, w = 480, 640
-            frame = np.zeros((h, w, 3), dtype=np.uint8)
-            frame[:] = (30, 25, 20)
-            # Animate a simple face circle
-            cx, cy = w // 2, h // 2
-            r = 90
-            cv2.circle(frame, (cx, cy), r, (200, 160, 100), -1)
-            # Eyes
-            ex = int(cx - 30 + 5 * math.sin(t / 10))
-            cv2.circle(frame, (ex, cy - 25), 10, (40, 40, 40), -1)
-            cv2.circle(frame, (cx + 30, cy - 25), 10, (40, 40, 40), -1)
-            # Mouth arc
-            cv2.ellipse(frame, (cx, cy + 20), (35, 20), 0, 0, 180, (40, 40, 40), 3)
-            cv2.putText(frame, "DEMO — No Camera", (w//2 - 130, h - 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (100, 200, 255), 2)
-            with self._lock:
-                self.frame = frame.copy()
-            time.sleep(0.05)
-            t += 1
 
     def get_frame(self):
         with self._lock:
@@ -180,35 +118,19 @@ class CameraThread(threading.Thread):
 
 
 def capture_face_encoding(frame: np.ndarray):
-    """Extract FaceNet 128-d embedding from a BGR frame using DeepFace.
-    Returns (np.ndarray, None) on success, or (None, error_message) on failure.
-    """
-    if FACE_LIB != "deepface":
-        return None, "DeepFace 未安裝，請執行：pip install deepface"
+    """Extract 128-d face encoding from frame. Returns None if no face found."""
+    if FACE_LIB != "face_recognition":
+        return None, "face_recognition 未安蝦，讋�螆後重試"
 
-    try:
-        # DeepFace.represent() accepts a BGR numpy array directly
-        results = DeepFace.represent(
-            img_path        = frame,
-            model_name      = DEEPFACE_MODEL,
-            enforce_detection = True,
-            detector_backend = DEEPFACE_BACKEND,
-        )
-        if not results:
-            return None, "未偵測到人臉，請正面面向鏡頭"
-        if len(results) > 1:
-            return None, "偵測到多於一張人臉，請確保只有您在鏡頭前"
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    locs = face_recognition.face_locations(rgb, model="hog")
+    if not locs:
+        return None, "未偵測到人臉，請正面面向鏡頭"
+    if len(locs) > 1:
+        return None, "偵測到多於一張人臉，請確保只有您在鏡頭前"
 
-        embedding = np.array(results[0]["embedding"], dtype=np.float32)
-        return embedding, None
-
-    except ValueError as e:
-        msg = str(e)
-        if "Face could not be detected" in msg or "No face" in msg:
-            return None, "未偵測到人臉，請正面面向鏡頭"
-        return None, f"人臉偵測失敗：{msg[:60]}"
-    except Exception as e:
-        return None, f"識別錯誤：{str(e)[:60]}"
+    encs = face_recognition.face_encodings(rgb, locs)
+    return encs[0], None
 
 # ─── API helpers ─────────────────────────────────────────────────────────────
 
@@ -243,6 +165,30 @@ def api_get_zones() -> list:
     except Exception:
         return []
 
+def api_session_enter(user_id: str, zone_id: str) -> dict:
+    """POST /session/enter — start a timed session after entering the zone."""
+    r = requests.post(f"{API_URL}/session/enter",
+                      json={"user_id": user_id, "zone_id": zone_id},
+                      timeout=5)
+    r.raise_for_status()
+    return r.json()
+
+def api_session_extend(user_id: str, zone_id: str) -> dict:
+    """POST /session/extend — extend the current session (max 2 extensions)."""
+    r = requests.post(f"{API_URL}/session/extend",
+                      json={"user_id": user_id, "zone_id": zone_id},
+                      timeout=5)
+    r.raise_for_status()
+    return r.json()
+
+def api_get_active_sessions() -> list:
+    """GET /sessions/active — get all active sessions."""
+    try:
+        r = requests.get(f"{API_URL}/sessions/active", timeout=3)
+        return r.json()
+    except Exception:
+        return []
+
 # ─── Kiosk UI ────────────────────────────────────────────────────────────────
 
 class BridgeSpaceKiosk(tk.Tk):
@@ -256,13 +202,10 @@ class BridgeSpaceKiosk(tk.Tk):
     AMBER = "#F59E0B"
     WHITE = "#F1F5F9"
     GRAY  = "#64748B"
-    # Cross-platform font: PingFang TC on macOS, Microsoft JhengHei on Windows
-    import platform as _plat
-    _CJK = "Microsoft JhengHei" if _plat.system() == "Windows" else "PingFang TC"
-    FONT_TITLE  = (_CJK, 32, "bold")
-    FONT_LARGE  = (_CJK, 24)
-    FONT_MEDIUM = (_CJK, 18)
-    FONT_SMALL  = (_CJK, 14)
+    FONT_TITLE  = ("PingFang TC", 32, "bold")
+    FONT_LARGE  = ("PingFang TC", 24)
+    FONT_MEDIUM = ("PingFang TC", 18)
+    FONT_SMALL  = ("PingFang TC", 14)
 
     def __init__(self):
         super().__init__()
@@ -271,14 +214,15 @@ class BridgeSpaceKiosk(tk.Tk):
         self.attributes("-fullscreen", True)
         self.bind("<Escape>", lambda e: self.attributes("-fullscreen", False))
 
-        cam_src = "demo" if DEMO_MODE else (_args.cam if not str(_args.cam).isdigit() else int(_args.cam))
-        self.cam = CameraThread(cam_src)
+        self.cam = CameraThread(0)
         self.cam.start()
 
-        self._state = "home"       # home / scanning / register_form / queue_select / confirmed
+        self._state = "home"       # home / scanning / register_form / queue_select / confirmed / session_active
         self._current_user = None
         self._pending_encoding = None
         self._pending_face_id = None
+        self._session_timer_id = None   # after() id for session countdown
+        self._active_session = None     # current session dict
 
         self._build_ui()
         self._refresh_cam()
@@ -392,7 +336,21 @@ class BridgeSpaceKiosk(tk.Tk):
             if user:
                 self._current_user = user
                 self.scan_status.config(text=f"✅  識別成功：{user['name']}", fg=self.GREEN)
-                self.after(1200, self._show_zone_select)
+                # Check if user has an active session — show timer instead of zone select
+                active = api_get_active_sessions()
+                user_session = None
+                for s in active:
+                    if s.get("user_id") == user["id"]:
+                        user_session = s
+                        break
+                if user_session:
+                    self.after(1200, lambda: self._show_session_started(
+                        user_session["zone_id"],
+                        {"duration_min": max(1, int(user_session.get("remaining_seconds", 60) / 60)),
+                         "extensions": user_session.get("extensions", 0)}
+                    ))
+                else:
+                    self.after(1200, self._show_zone_select)
                 return
 
         # No match — offer to register
@@ -441,7 +399,7 @@ class BridgeSpaceKiosk(tk.Tk):
         phone = self.phone_var.get().strip()
 
         if not name or not phone:
-            self.reg_status.config(text="請填寫所有欄位")
+            self.reg_status.config(text="請填寫所有欄$��")
             return
         if len(phone) < 8:
             self.reg_status.config(text="請輸入有效電話號碼")
@@ -526,10 +484,20 @@ class BridgeSpaceKiosk(tk.Tk):
     def _join_queue(self, zone_id: str):
         try:
             result = api_join_queue(self._current_user["id"], zone_id)
-            self._show_confirmed(zone_id, result["queue_num"])
+            walk_in = result.get("walk_in", False)
+            if walk_in:
+                # Direct entry — start session immediately
+                try:
+                    sess = api_session_enter(self._current_user["id"], zone_id)
+                    self._show_session_started(zone_id, sess)
+                except Exception:
+                    # Session API failed, still show queue confirmation
+                     self._show_confirmed(zone_id, result["queue_num"], walk_in=True)
+            else:
+                self._show_confirmed(zone_id, result["queue_num"], walk_in=False)
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 400:
-                messagebox.showwarning("提示", "您已在此區域排隊，請等候叫號")
+                messagebox.showwarning("提示", "悢添岣�Ս�域排隊，請等候叫號")
             else:
                 messagebox.showerror("錯誤", str(e))
         except Exception as e:
@@ -537,30 +505,150 @@ class BridgeSpaceKiosk(tk.Tk):
 
     # ── Confirmed screen ─────────────────────────────────────────────────────
 
-    def _show_confirmed(self, zone_id: str, queue_num: int):
+    def _show_confirmed(self, zone_id: str, queue_num: int, walk_in: bool = False):
         self._state = "confirmed"
         self._clear_panel()
         p = self.panel
 
         zone_name = dict(ZONES).get(zone_id, zone_id)
 
-        tk.Label(p, text="✅", font=("Arial", 72), bg=self.BG).pack(pady=(50, 0))
-        tk.Label(p, text="已加入排隊！", font=self.FONT_TITLE,
-                 fg=self.GREEN, bg=self.BG).pack(pady=10)
-
-        card = tk.Frame(p, bg=self.CARD)
-        card.pack(fill="x", padx=20, pady=20)
-        tk.Label(card, text=f"區域：{zone_name}", font=self.FONT_LARGE,
-                 fg=self.WHITE, bg=self.CARD).pack(pady=(16, 6))
-        tk.Label(card, text=f"您的號碼", font=self.FONT_MEDIUM,
-                 fg=self.GRAY, bg=self.CARD).pack()
-        tk.Label(card, text=str(queue_num), font=("PingFang TC", 80, "bold"),
-                 fg=self.AMBER, bg=self.CARD).pack(pady=10)
-        tk.Label(card, text="請留意顯示屏上的叫號\n請勿離開設施範圍", font=self.FONT_MEDIUM,
-                 fg=self.GRAY, bg=self.CARD, justify="center").pack(pady=(0, 16))
+        if walk_in:
+            tk.Label(p, text="🎉", font=("Arial", 72), bg=self.BG).pack(pady=(50, 0))
+            tk.Label(p, text="直接入場！", font=self.FONT_TITLE,
+                     fg=self.GREEN, bg=self.BG).pack(pady=10)
+            card = tk.Frame(p, bg=self.CARD)
+            card.pack(fill="x", padx=20, pady=20)
+            tk.Label(card, text=f"區域：{zone_name}", font=self.FONT_LARGE,
+                     fg=self.WHITE, bg=self.CARD).pack(pady=(16, 6))
+            tk.Label(card, text="該區域有空位，您可直接入場！\n閘門將自動開啟",
+                     font=self.FONT_MEDIUM, fg=self.GREEN, bg=self.CARD,
+                     justify="center").pack(pady=(10, 16))
+        else:
+            tk.Label(p, text="✅", font=("Arial", 72), bg=self.BG).pack(pady=(50, 0))
+            tk.Label(p, text="已加入排隊！", font=self.FONT_TITLE,
+                     fg=self.GREEN, bg=self.BG).pack(pady=10)
+            card = tk.Frame(p, bg=self.CARD)
+            card.pack(fill="x", padx=20, pady=20)
+            tk.Label(card, text=f"區域：{zone_name}", font=self.FONT_LARGE,
+                     fg=self.WHITE, bg=self.CARD).pack(pady=(16, 6))
+            tk.Label(card, text="您的號碼", font=self.FONT_MEDIUM,
+                     fg=self.GRAY, bg=self.CARD).pack()
+            tk.Label(card, text=str(queue_num), font=("PingFang TC", 80, "bold"),
+                     fg=self.AMBER, bg=self.CARD).pack(pady=10)
+            tk.Label(card, text="請留意顯示屏上的叫號\n叫號後請於15分鐘內入場",
+                     font=self.FONT_MEDIUM, fg=self.GRAY, bg=self.CARD,
+                     justify="center").pack(pady=(0, 16))
 
         self._btn(p, "完成，返回首頁", lambda: self.after(0, self._show_home),
                   color=self.BLUE).pack(fill="x", padx=20, pady=10)
+
+    # ── Session started screen ──────────────────────────────────────────────
+
+    def _show_session_started(self, zone_id: str, session_info: dict):
+        """Show session timer screen after entering the zone."""
+        self._state = "session_active"
+        self._active_session = {
+            "zone_id": zone_id,
+            "user_id": self._current_user["id"],
+            "duration_min": session_info.get("duration_min", 45),
+            "extensions": session_info.get("extensions", 0),
+            "max_extensions": 2,
+            "start_time": time.time(),
+        }
+        self._clear_panel()
+        p = self.panel
+
+        zone_name = dict(ZONES).get(zone_id, zone_id)
+
+        tk.Label(p, text="🏟️", font=("Arial", 60), bg=self.BG).pack(pady=(30, 0))
+        tk.Label(p, text="場次已開始", font=self.FONT_TITLE,
+                 fg=self.GREEN, bg=self.BG).pack(pady=(6, 4))
+        tk.Label(p, text=f"區域：{zone_name}", font=self.FONT_LARGE,
+                 fg=self.WHITE, bg=self.BG).pack(pady=(0, 20))
+
+        # Timer card
+        timer_card = tk.Frame(p, bg=self.CARD)
+        timer_card.pack(fill="x", padx=20, pady=10)
+
+        tk.Label(timer_card, text="剩餘時間", font=self.FONT_MEDIUM,
+                 fg=self.GRAY, bg=self.CARD).pack(pady=(16, 4))
+        self.session_timer_lbl = tk.Label(timer_card, text="--:--",
+                                          font=("Courier", 64, "bold"),
+                                          fg=self.GREEN, bg=self.CARD)
+        self.session_timer_lbl.pack(pady=10)
+
+        dur = self._active_session["duration_min"]
+        ext = self._active_session["extensions"]
+        tk.Label(timer_card, text=f"場次時長 {dur} 分鐘  |  已續時 {ext}/2 次",
+                 font=self.FONT_SMALL, fg=self.GRAY, bg=self.CARD).pack(pady=(0, 16))
+
+        # Extension button
+        self.extend_btn = self._btn(p, "⏱  續時 (再加 15 分鐘)", self._extend_session,
+                                     color=self.AMBER)
+        self.extend_btn.pack(fill="x", padx=20, pady=(16, 8))
+        if ext >= 2:
+            self.extend_btn.config(state="disabled", text="已達最大續時次數")
+
+        # Info text
+        tk.Label(p, text="⚠️ 到時後燈光將關閉，設備會自動收起\n請在時間結束前完成活動或續時",
+                 font=self.FONT_SMALL, fg=self.GRAY, bg=self.BG,
+                 justify="center").pack(pady=(8, 4))
+
+        self._btn(p, "完成，返回首頁", lambda: self.after(0, self._show_home),
+                  color=self.GRAY).pack(fill="x", padx=20, pady=8)
+
+        # Start countdown timer
+        self._tick_session_timer()
+
+    def _tick_session_timer(self):
+        """Update session countdown every second."""
+        if self._state != "session_active" or not self._active_session:
+            return
+        sess = self._active_session
+        elapsed = time.time() - sess["start_time"]
+        remaining = (sess["duration_min"] * 60) - elapsed
+
+        if remaining <= 0:
+            self.session_timer_lbl.config(text="00:00", fg=self.RED)
+            return
+        elif remaining <= 300:  # 5 minutes warning
+            self.session_timer_lbl.config(fg=self.RED)
+        elif remaining <= 600:  # 10 minutes
+            self.session_timer_lbl.config(fg=self.AMBER)
+        else:
+            self.session_timer_lbl.config(fg=self.GREEN)
+
+        mins = int(remaining) // 60
+        secs = int(remaining) % 60
+        self.session_timer_lbl.config(text=f"{mins:02d}:{secs:02d}")
+        self._session_timer_id = self.after(1000, self._tick_session_timer)
+
+    def _extend_session(self):
+        """Request session extension from server."""
+        if not self._active_session:
+            return
+        sess = self._active_session
+        try:
+            result = api_session_extend(sess["user_id"], sess["zone_id"])
+            new_end = result.get("new_end")
+            ext_count = result.get("extensions", sess["extensions"] + 1)
+            # Update local session
+            sess["duration_min"] += 15
+            sess["extensions"] = ext_count
+            # Refresh the session screen
+            self._show_session_started(sess["zone_id"], {
+                "duration_min": sess["duration_min"],
+                "extensions": ext_count,
+            })
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                resp = e.response.json() if e.response.text else {}
+                reason = resp.get("detail", "無法續時")
+                messagebox.showwarning("提示", reason)
+            else:
+                messagebox.showerror("錯誤", str(e))
+        except Exception as e:
+            messagebox.showerror("錯誤", str(e))
 
     # ── Camera refresh ───────────────────────────────────────────────────────
 
@@ -603,6 +691,12 @@ class BridgeSpaceKiosk(tk.Tk):
 # ─── Entry point ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--api", default="http://localhost:8000")
+    args = parser.parse_args()
+    API_URL = args.api
+
     app = BridgeSpaceKiosk()
     app.protocol("WM_DELETE_WINDOW", app.on_close)
     app.mainloop()
