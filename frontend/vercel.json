@@ -1,7 +1,0 @@
-{
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }],
-  "env": {
-    "VITE_API_URL": "https://your-railway-app.railway.app",
-    "VITE_API_WS":  "wss://your-railway-app.railway.app/ws"
-  }
-}

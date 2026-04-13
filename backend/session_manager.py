@@ -1,7 +1,9 @@
 """
 SessionManager — Autonomous session lifecycle for BridgeSpace.
-Tracks per-user time slots, handles expiry warnings, overstay escalation,
-and coordinates with SmartControl + AlertEngine.
+Tracks per-user time slots **per court**, handles expiry warnings,
+overstay escalation, and coordinates with SmartControl + AlertEngine.
+
+v2.1: Sessions now bind to a specific court_num within each zone.
 """
 
 import asyncio
@@ -10,14 +12,9 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-# ─── Default durations (seconds) ────────────────────────────────────────────
-
-ZONE_SESSION_DURATION = {
-    "A": 45 * 60,   # Badminton / Basketball — 45 min
-    "B": 30 * 60,   # Pickleball / Table Tennis — 30 min
-    "C": 0,          # Community Leisure — unlimited (no session)
-    "D": 45 * 60,   # Emerging Sports — 45 min
-}
+# ─── Default duration fallback (seconds) ───────────────────────────────────
+# Actual duration is read from the zones table (changes when sport mode switches).
+DEFAULT_DURATION = 2700  # 45 min fallback
 
 WARNING_BEFORE  = 5 * 60    # flash lights 5 min before expiry
 OVERSTAY_WARN   = 5 * 60    # Telegram after 5 min overstay
@@ -33,16 +30,42 @@ class SessionManager:
         self.ctrl = smart_control
         self.alert = alert_engine
 
+    # ── Find next free court in a zone ────────────────────────────────────
+
+    def _next_free_court(self, conn, zone_id: str) -> int:
+        """Return the lowest court number without an active session."""
+        zone = conn.execute(
+            "SELECT courts FROM zones WHERE id=?", (zone_id,)
+        ).fetchone()
+        total = zone["courts"] if zone else 1
+
+        occupied = conn.execute(
+            """SELECT court_num FROM sessions
+               WHERE zone_id=? AND status IN ('active','warning','expired','overstay')""",
+            (zone_id,)
+        ).fetchall()
+        occupied_nums = {r["court_num"] for r in occupied}
+
+        for i in range(1, total + 1):
+            if i not in occupied_nums:
+                return i
+        return 1  # fallback (shouldn't happen if caller checked availability)
+
     # ── Start a new session when user enters zone ──────────────────────────
 
     async def start_session(self, user_id: str, zone_id: str,
                             queue_id: Optional[str] = None) -> dict:
         conn = self.get_db()
-        duration = ZONE_SESSION_DURATION.get(zone_id, 45 * 60)
+        zone = conn.execute(
+            "SELECT session_duration FROM zones WHERE id=?", (zone_id,)
+        ).fetchone()
+        duration = zone["session_duration"] if zone else DEFAULT_DURATION
 
         if duration == 0:
             conn.close()
             return {"session_id": None, "message": "This zone does not enforce a session timer."}
+
+        court_num = self._next_free_court(conn, zone_id)
 
         now = datetime.now()
         expires = now + timedelta(seconds=duration)
@@ -50,9 +73,9 @@ class SessionManager:
 
         conn.execute(
             """INSERT INTO sessions
-               (id, user_id, zone_id, queue_id, started_at, expires_at, status)
-               VALUES (?,?,?,?,?,?,?)""",
-            (sid, user_id, zone_id, queue_id,
+               (id, user_id, zone_id, court_num, queue_id, started_at, expires_at, status)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (sid, user_id, zone_id, court_num, queue_id,
              now.isoformat(), expires.isoformat(), "active")
         )
         # Mark queue entry as 'entered'
@@ -71,6 +94,7 @@ class SessionManager:
         await self._broadcast_sessions()
         return {
             "session_id": sid,
+            "court_num": court_num,
             "expires_at": expires.isoformat(),
             "duration_min": duration // 60,
         }
@@ -159,7 +183,10 @@ class SessionManager:
             conn.close()
             return {"ok": False, "message": f"Cannot extend while {waiting} people are waiting in the queue"}
 
-        duration = ZONE_SESSION_DURATION.get(s["zone_id"], 45 * 60)
+        zone = conn.execute(
+            "SELECT session_duration FROM zones WHERE id=?", (s["zone_id"],)
+        ).fetchone()
+        duration = zone["session_duration"] if zone else DEFAULT_DURATION
         new_expires = datetime.fromisoformat(s["expires_at"]) + timedelta(seconds=duration)
 
         conn.execute(
@@ -233,7 +260,7 @@ class SessionManager:
             """SELECT s.*, u.name FROM sessions s
                LEFT JOIN users u ON s.user_id = u.id
                WHERE s.status IN ('active','warning','expired','overstay')
-               ORDER BY s.zone_id, s.started_at"""
+               ORDER BY s.zone_id, s.court_num, s.started_at"""
         ).fetchall()
         conn.close()
         return [dict(r) for r in rows]
@@ -241,3 +268,4 @@ class SessionManager:
     async def _broadcast_sessions(self):
         sessions = await self.get_active_sessions()
         await self.broadcast({"type": "sessions", "data": sessions})
+

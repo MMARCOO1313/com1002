@@ -16,9 +16,10 @@ from typing import Optional
 # Zone equipment configuration
 ZONE_DEVICES = {
     "A": {"light": True, "hoop": True,  "gate": True},   # Basketball has hoops
-    "B": {"light": True, "hoop": False, "gate": True},
-    "C": {"light": True, "hoop": False, "gate": True},
-    "D": {"light": True, "hoop": True,  "gate": True},   # Emerging sports
+    "B": {"light": True, "hoop": False, "gate": True},   # Volleyball
+    "C": {"light": True, "hoop": False, "gate": True},   # Badminton
+    "D": {"light": True, "hoop": False, "gate": True},   # Table Tennis
+    "E": {"light": True, "hoop": False, "gate": True},   # Pickleball
 }
 
 
