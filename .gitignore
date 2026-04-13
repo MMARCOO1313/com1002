@@ -9,8 +9,5 @@ backend/.env
 smartgate/face_db/
 backend/face_db/
 backend/bridgespace.db
-backend/models/*.onnx
-backend/models/*.caffemodel
-backend/models/*.prototxt
 *.DS_Store
 .claude/
