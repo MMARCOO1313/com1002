@@ -10,14 +10,28 @@ v2.1: Each zone is multi-functional. Sport mode can be switched,
       which changes the number of courts and session duration.
 """
 
+import os
+from pathlib import Path
+
+# Load .env file if present (before any module imports that read env vars)
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    for line in _env_file.read_text().strip().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
+
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import sqlite3, json, asyncio, uuid
+import sqlite3, json, asyncio, uuid, hashlib, base64, io, pickle
 from datetime import datetime
-from pathlib import Path
 from contextlib import asynccontextmanager
+
+import cv2
+import numpy as np
 
 # --- Import autonomous modules -----------------------------------------------
 
@@ -25,7 +39,11 @@ from session_manager import SessionManager
 from auto_queue import OccupancyWatcher
 from smart_control import SmartControl
 from alert_engine import AlertEngine
-from zone_catalog import normalize_zone_catalog, SPORT_CONFIG
+from zone_catalog import (
+    normalize_zone_catalog, SPORT_CONFIG, ZONE_TOTAL_UNITS, UNIT_AREA_SQM,
+    validate_allocation, alloc_to_courts, alloc_units_used, alloc_equipment_set,
+    ALLOC_PRESETS, DEFAULT_ZONES,
+)
 
 # --- Database ----------------------------------------------------------------
 
@@ -59,7 +77,8 @@ def init_db():
             courts          INTEGER DEFAULT 1,
             current_count   INTEGER DEFAULT 0,
             status          TEXT DEFAULT 'open',
-            session_duration INTEGER DEFAULT 2700
+            session_duration INTEGER DEFAULT 2700,
+            allocation      TEXT DEFAULT '[]'
         );
 
         CREATE TABLE IF NOT EXISTS queue (
@@ -123,6 +142,7 @@ def init_db():
         "ALTER TABLE zones ADD COLUMN current_sport TEXT DEFAULT ''",
         "ALTER TABLE zones ADD COLUMN courts INTEGER DEFAULT 1",
         "ALTER TABLE sessions ADD COLUMN court_num INTEGER DEFAULT 1",
+        "ALTER TABLE zones ADD COLUMN allocation TEXT DEFAULT '[]'",
     ]:
         try:
             conn.execute(stmt)
@@ -275,7 +295,16 @@ def get_zones():
     conn = get_db()
     rows = conn.execute("SELECT * FROM zones").fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    result = []
+    for r in rows:
+        d = dict(r)
+        # Parse allocation JSON
+        try:
+            d["allocation"] = json.loads(d.get("allocation") or "[]")
+        except Exception:
+            d["allocation"] = []
+        result.append(d)
+    return result
 
 
 @app.post("/zones/occupancy")
@@ -360,6 +389,71 @@ async def switch_sport(zone_id: str, data: SwitchSport):
     await manager.broadcast({"type": "occupancy", "zones": all_zones})
 
     return {"ok": True, "sport": data.sport, "courts": sport_info["courts"], "duration": sport_info["duration"]}
+
+
+# --- Zone allocation (unit-based) --------------------------------------------
+
+class AllocateRequest(BaseModel):
+    allocation: list  # [{"sport": "乒乓球", "count": 2}, {"sport": "羽毛球", "count": 1}]
+
+@app.post("/zones/{zone_id}/allocate")
+async def allocate_zone(zone_id: str, data: AllocateRequest):
+    """Set a zone's sport allocation (mixed sports OK, max 4 units)."""
+    ok, msg = validate_allocation(data.allocation)
+    if not ok:
+        raise HTTPException(400, msg)
+
+    conn = get_db()
+    zone = conn.execute("SELECT * FROM zones WHERE id=?", (zone_id,)).fetchone()
+    if not zone:
+        conn.close()
+        raise HTTPException(404, "Zone not found")
+
+    # Block if active sessions or queue
+    active = conn.execute(
+        "SELECT COUNT(*) as c FROM sessions WHERE zone_id=? AND status IN ('active','warning','expired','overstay')",
+        (zone_id,),
+    ).fetchone()["c"]
+    in_queue = conn.execute(
+        "SELECT COUNT(*) as c FROM queue WHERE zone_id=? AND status IN ('waiting','called','entered')",
+        (zone_id,),
+    ).fetchone()["c"]
+    if active > 0 or in_queue > 0:
+        conn.close()
+        raise HTTPException(400, f"有 {active} 個活躍場次和 {in_queue} 個排隊中，無法更改配置")
+
+    courts = alloc_to_courts(data.allocation)
+    first_sport = data.allocation[0]["sport"] if data.allocation else ""
+    duration = SPORT_CONFIG[first_sport]["duration"] if first_sport else 2700
+    alloc_json = json.dumps(data.allocation, ensure_ascii=False)
+
+    conn.execute(
+        "UPDATE zones SET allocation=?, courts=?, current_sport=?, session_duration=? WHERE id=?",
+        (alloc_json, courts, first_sport, duration, zone_id),
+    )
+    conn.commit()
+
+    # Update SmartControl equipment
+    smart_ctrl.update_zone_equipment(zone_id, data.allocation)
+
+    all_zones = [dict(r) for r in conn.execute("SELECT * FROM zones").fetchall()]
+    conn.close()
+    await manager.broadcast({"type": "occupancy", "zones": all_zones})
+
+    return {"ok": True, "allocation": data.allocation, "courts": courts, "units_used": alloc_units_used(data.allocation)}
+
+@app.get("/zone-config")
+def get_zone_config():
+    """Return sport config, unit costs, presets for frontend."""
+    return {
+        "total_units": ZONE_TOTAL_UNITS,
+        "unit_area_sqm": UNIT_AREA_SQM,
+        "sports": SPORT_CONFIG,
+        "presets": ALLOC_PRESETS,
+        "zone_count": len(DEFAULT_ZONES),
+        "total_area_sqm": len(DEFAULT_ZONES) * ZONE_TOTAL_UNITS * UNIT_AREA_SQM,
+        "total_area_with_circulation": round(len(DEFAULT_ZONES) * ZONE_TOTAL_UNITS * UNIT_AREA_SQM * 1.3),
+    }
 
 
 # --- Queue -------------------------------------------------------------------
@@ -556,6 +650,114 @@ async def device_command(zone_id: str, device: str, cmd: DeviceCommand):
     return {"ok": True, "zone_id": zone_id, "device": device, "action": action}
 
 
+# --- Demo endpoints (exhibition only) ----------------------------------------
+
+class DemoBookRequest(BaseModel):
+    zone_id: str
+    court_num: int = 0  # 0 = auto-assign
+
+@app.post("/demo/book")
+async def demo_book_court(data: DemoBookRequest):
+    """DEMO: Instantly book a court without queue flow."""
+    conn = get_db()
+    zone = conn.execute("SELECT * FROM zones WHERE id=?", (data.zone_id,)).fetchone()
+    if not zone:
+        conn.close()
+        raise HTTPException(404, "Zone not found")
+
+    total_courts = zone["courts"] or 1
+    active = conn.execute(
+        "SELECT court_num FROM sessions WHERE zone_id=? AND status IN ('active','warning','expired','overstay')",
+        (data.zone_id,),
+    ).fetchall()
+    occupied = {r["court_num"] for r in active}
+
+    if data.court_num > 0:
+        if data.court_num in occupied:
+            conn.close()
+            raise HTTPException(400, f"Court {data.court_num} already occupied")
+        court = data.court_num
+    else:
+        court = None
+        for c in range(1, total_courts + 1):
+            if c not in occupied:
+                court = c
+                break
+        if court is None:
+            conn.close()
+            raise HTTPException(400, "All courts occupied")
+
+    # Create demo user + session
+    demo_id = f"DEMO-{data.zone_id}{court}"
+    face_id = f"demo_{data.zone_id}_{court}_{uuid.uuid4().hex[:6]}"
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO users (id, name, phone, face_id, created) VALUES (?,?,?,?,?)",
+            (demo_id, f"Demo {data.zone_id}-{court}", "0000", face_id, datetime.now().isoformat()),
+        )
+    except Exception:
+        pass
+
+    alloc_raw = dict(zone).get("allocation") or "[]"
+    alloc = json.loads(alloc_raw) if isinstance(alloc_raw, str) else alloc_raw
+    first_sport = alloc[0]["sport"] if alloc else (zone["current_sport"] or "")
+    duration = SPORT_CONFIG.get(first_sport, {}).get("duration", 2700)
+
+    sid = str(uuid.uuid4())[:8].upper()
+    now = datetime.now()
+    from datetime import timedelta
+    expires = now + timedelta(seconds=duration)
+    conn.execute(
+        "INSERT INTO sessions (id, user_id, zone_id, court_num, started_at, expires_at, status) VALUES (?,?,?,?,?,?,?)",
+        (sid, demo_id, data.zone_id, court, now.isoformat(), expires.isoformat(), "active"),
+    )
+    conn.commit()
+
+    conn.close()
+
+    return {"ok": True, "session_id": sid, "court_num": court}
+
+
+@app.post("/demo/unbook/{zone_id}")
+async def demo_unbook_zone(zone_id: str, court_num: int = 0):
+    """DEMO: Force-end session(s) in a zone. court_num=0 means all."""
+    conn = get_db()
+    now = datetime.now().isoformat()
+    if court_num > 0:
+        conn.execute(
+            "UPDATE sessions SET status='ended', ended_at=? WHERE zone_id=? AND court_num=? AND status IN ('active','warning','expired','overstay')",
+            (now, zone_id, court_num),
+        )
+    else:
+        conn.execute(
+            "UPDATE sessions SET status='ended', ended_at=? WHERE zone_id=? AND status IN ('active','warning','expired','overstay')",
+            (now, zone_id),
+        )
+    # Also clear queue for the zone
+    conn.execute(
+        "DELETE FROM queue WHERE zone_id=? AND status IN ('waiting','called')",
+        (zone_id,),
+    )
+    conn.commit()
+    conn.close()
+
+    return {"ok": True, "zone_id": zone_id}
+
+
+@app.post("/demo/reset-all")
+async def demo_reset_all():
+    """DEMO: End all sessions, clear all queues, reset all devices."""
+    conn = get_db()
+    now = datetime.now().isoformat()
+    conn.execute("UPDATE sessions SET status='ended', ended_at=? WHERE status IN ('active','warning','expired','overstay')", (now,))
+    conn.execute("DELETE FROM queue WHERE status IN ('waiting','called')")
+    conn.execute("UPDATE zones SET current_count=0, status='open'")
+    conn.commit()
+    conn.close()
+
+    return {"ok": True, "message": "All sessions ended, queues cleared"}
+
+
 # --- Alerts ------------------------------------------------------------------
 
 class WhatsAppTest(BaseModel):
@@ -635,13 +837,381 @@ def _get_queue_snapshot(conn):
     return [dict(r) for r in rows]
 
 
+_MODEL_DIR = Path(__file__).parent / "models"
+_MODEL_DIR.mkdir(exist_ok=True)
+
+# --- SmartGate face recognition (YuNet + SFace) -----------------------------
+#
+# Uses OpenCV's built-in deep-learning face pipeline:
+#   1. YuNet   — lightweight face detector (ONNX, 227 KB)
+#   2. SFace   — 128-d face embedding model (ONNX, 37 MB)
+#
+# Each registered user's 128-d embedding is stored in face_db/encodings.pkl.
+# On scan, the new embedding is compared against ALL stored embeddings using
+# cosine similarity.  Threshold 0.363 (OpenCV recommended for SFace cosine).
+# --------------------------------------------------------------------------
+
+FACE_DB_DIR = Path(__file__).parent / "face_db"
+FACE_DB_DIR.mkdir(exist_ok=True)
+FACE_ENCODINGS_FILE = FACE_DB_DIR / "encodings.pkl"
+
+_YUNET_PATH = str(_MODEL_DIR / "face_detection_yunet_2023mar.onnx")
+_SFACE_PATH = str(_MODEL_DIR / "face_recognition_sface_2021dec.onnx")
+
+# ── Thresholds ──────────────────────────────────────────────────────────────
+# SFace L2 norm distance:  identical ≈ 0.0,  same person < 1.05,  different > 1.2
+# We use L2 (more discriminative than cosine for SFace on webcam images).
+_L2_MATCH_THRESHOLD = 1.05   # must be BELOW this to count as same person
+
+# Initialise models
+_face_detector = None
+_face_recognizer = None
+
+def _init_face_models():
+    global _face_detector, _face_recognizer
+    if Path(_YUNET_PATH).exists():
+        _face_detector = cv2.FaceDetectorYN.create(
+            _YUNET_PATH, "", (320, 320),
+            score_threshold=0.75,   # higher = fewer false positives
+            nms_threshold=0.3,
+            top_k=5000,
+        )
+        print("[SmartGate] YuNet face detector loaded")
+    else:
+        print("[SmartGate] WARNING: YuNet model not found")
+
+    if Path(_SFACE_PATH).exists():
+        _face_recognizer = cv2.FaceRecognizerSF.create(_SFACE_PATH, "")
+        print("[SmartGate] SFace face recognizer loaded (L2 threshold:", _L2_MATCH_THRESHOLD, ")")
+    else:
+        print("[SmartGate] WARNING: SFace model not found")
+
+_init_face_models()
+
+
+# ── Face DB — always read from disk to avoid stale cache ────────────────────
+
+def _load_face_db() -> dict:
+    """Load {face_id: 128-d np.ndarray} from pickle. Called on every request."""
+    if FACE_ENCODINGS_FILE.exists():
+        try:
+            with open(FACE_ENCODINGS_FILE, "rb") as f:
+                return pickle.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def _save_face_db(db: dict):
+    with open(FACE_ENCODINGS_FILE, "wb") as f:
+        pickle.dump(db, f)
+
+
+class FaceScanRequest(BaseModel):
+    image: str
+
+class FaceSaveRequest(BaseModel):
+    face_id: str
+    image: str
+
+
+def _decode_image(b64: str) -> np.ndarray:
+    if "," in b64:
+        b64 = b64.split(",", 1)[1]
+    raw = base64.b64decode(b64)
+    arr = np.frombuffer(raw, dtype=np.uint8)
+    return cv2.imdecode(arr, cv2.IMREAD_COLOR)
+
+
+def _detect_face(img: np.ndarray):
+    """Detect the largest face. Returns (face_row, bbox_dict) or (None, None)."""
+    if _face_detector is None:
+        return None, None
+    h, w = img.shape[:2]
+    _face_detector.setInputSize((w, h))
+    _, faces = _face_detector.detect(img)
+    if faces is None or len(faces) == 0:
+        return None, None
+    best = max(faces, key=lambda f: f[2] * f[3])
+    x, y, fw, fh = int(best[0]), int(best[1]), int(best[2]), int(best[3])
+    return best, {"left": x, "top": y, "right": x + fw, "bottom": y + fh}
+
+
+def _get_embedding(img: np.ndarray, face_obj) -> np.ndarray:
+    """Extract L2-normalised 128-d embedding via SFace."""
+    if _face_recognizer is None:
+        return None
+    aligned = _face_recognizer.alignCrop(img, face_obj)
+    embedding = _face_recognizer.feature(aligned)            # (1, 128)
+    # L2-normalise so comparison is meaningful
+    norm = np.linalg.norm(embedding)
+    if norm > 0:
+        embedding = embedding / norm
+    return embedding
+
+
+def _match_embedding(embedding: np.ndarray):
+    """
+    Compare embedding against ALL stored faces using L2 distance.
+    Returns (face_id, l2_distance) or (None, best_distance).
+    """
+    face_db = _load_face_db()          # ← always fresh from disk
+    if not face_db:
+        return None, 999.0
+
+    best_id = None
+    best_dist = 999.0
+    log_lines = []
+
+    for fid, stored_emb in face_db.items():
+        # Normalise stored embedding too (in case old data wasn't normalised)
+        s_norm = np.linalg.norm(stored_emb)
+        if s_norm > 0:
+            stored_normed = stored_emb / s_norm
+        else:
+            stored_normed = stored_emb
+
+        dist = float(np.linalg.norm(embedding - stored_normed))
+        log_lines.append(f"    vs {fid}: L2={dist:.4f}")
+        if dist < best_dist:
+            best_dist = dist
+            best_id = fid
+
+    # Log all comparisons for debugging
+    print(f"[SmartGate] Match results (threshold={_L2_MATCH_THRESHOLD}):")
+    for line in log_lines:
+        print(line)
+    print(f"  → Best: {best_id} @ L2={best_dist:.4f} → {'MATCH' if best_dist < _L2_MATCH_THRESHOLD else 'NO MATCH'}")
+
+    if best_dist < _L2_MATCH_THRESHOLD:
+        return best_id, best_dist
+    return None, best_dist
+
+
+@app.post("/smartgate/scan")
+def smartgate_scan(data: FaceScanRequest):
+    """Detect face, extract 128-d embedding, match against known faces."""
+    img = _decode_image(data.image)
+    if img is None:
+        return {"ok": False, "error": "無法解碼圖片"}
+
+    if _face_detector is None or _face_recognizer is None:
+        return {"ok": False, "error": "人臉模型未載入，請檢查 models/ 資料夾"}
+
+    face_obj, bbox = _detect_face(img)
+    if face_obj is None:
+        return {"detected": False, "message": "未偵測到人臉，請正面面向鏡頭"}
+
+    embedding = _get_embedding(img, face_obj)
+    if embedding is None:
+        return {"ok": False, "error": "無法提取人臉特徵"}
+
+    matched_id, dist = _match_embedding(embedding)
+
+    if matched_id:
+        conn = get_db()
+        row = conn.execute("SELECT * FROM users WHERE face_id=?", (matched_id,)).fetchone()
+        conn.close()
+        similarity = max(0.0, 1.0 - dist / 2.0)   # map L2 0..2 → 1..0
+        return {
+            "ok": True,
+            "detected": True,
+            "matched": row is not None,
+            "face_id": matched_id,
+            "face_location": bbox,
+            "score": round(dist, 4),
+            "message": f"識別成功 (相似度: {similarity:.0%})",
+        }
+    else:
+        new_id = uuid.uuid4().hex[:12]
+        return {
+            "ok": True,
+            "detected": True,
+            "matched": False,
+            "face_id": new_id,
+            "face_location": bbox,
+            "score": round(dist, 4),
+            "message": "新用戶",
+        }
+
+
+@app.post("/smartgate/save_face")
+def smartgate_save_face(data: FaceSaveRequest):
+    """Save L2-normalised 128-d face embedding."""
+    img = _decode_image(data.image)
+    if img is None:
+        return {"ok": False, "error": "無法解碼圖片"}
+
+    if _face_detector is None or _face_recognizer is None:
+        return {"ok": False, "error": "人臉模型未載入"}
+
+    face_obj, bbox = _detect_face(img)
+    if face_obj is None:
+        return {"ok": False, "error": "圖片中未偵測到人臉"}
+
+    embedding = _get_embedding(img, face_obj)
+    if embedding is None:
+        return {"ok": False, "error": "無法提取人臉特徵"}
+
+    face_db = _load_face_db()          # fresh from disk
+    face_db[data.face_id] = embedding
+    _save_face_db(face_db)
+    print(f"[SmartGate] Saved embedding for {data.face_id}, norm={float(np.linalg.norm(embedding)):.4f}, total faces={len(face_db)}")
+
+    return {"ok": True, "face_id": data.face_id, "message": f"人臉已保存（128維特徵向量）"}
+
+
+# --- SmartCount people detection (for dashboard) ----------------------------
+
+class FrameRequest(BaseModel):
+    image: str  # base64 data-URL or raw base64
+
+# Try to load MobileNet-SSD for person detection (best accuracy available without YOLO weights)
+_person_net = None
+_person_net_type = None
+
+def _init_person_detector():
+    """Initialize person detector. Try MobileNet-SSD (DNN) first, fall back to HOG."""
+    global _person_net, _person_net_type
+
+    # Option 1: MobileNet-SSD via OpenCV DNN (if model files downloaded)
+    proto = _MODEL_DIR / "MobileNetSSD_deploy.prototxt"
+    model = _MODEL_DIR / "MobileNetSSD_deploy.caffemodel"
+    if proto.exists() and model.exists():
+        _person_net = cv2.dnn.readNetFromCaffe(str(proto), str(model))
+        _person_net_type = "mobilenet-ssd"
+        print("[SmartCount] Using MobileNet-SSD person detector")
+        return
+
+    # Option 2: HOG people detector (built-in, no downloads needed)
+    _person_net = cv2.HOGDescriptor()
+    _person_net.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+    _person_net_type = "hog"
+    print("[SmartCount] Using HOG people detector (built-in)")
+
+_init_person_detector()
+
+# MobileNet-SSD class labels (PASCAL VOC)
+_MN_CLASSES = [
+    "background", "aeroplane", "bicycle", "bird", "boat", "bottle",
+    "bus", "car", "cat", "chair", "cow", "diningtable", "dog",
+    "horse", "motorbike", "person", "pottedplant", "sheep", "sofa",
+    "train", "tvmonitor"
+]
+_PERSON_IDX = 15  # "person" class index
+
+
+def _detect_people_mobilenet(img: np.ndarray, conf_thresh: float = 0.45):
+    """Detect people using MobileNet-SSD."""
+    h, w = img.shape[:2]
+    blob = cv2.dnn.blobFromImage(img, 0.007843, (300, 300), 127.5)
+    _person_net.setInput(blob)
+    detections = _person_net.forward()
+
+    boxes = []
+    for i in range(detections.shape[2]):
+        class_id = int(detections[0, 0, i, 1])
+        confidence = float(detections[0, 0, i, 2])
+        if class_id == _PERSON_IDX and confidence > conf_thresh:
+            x1 = max(0, int(detections[0, 0, i, 3] * w))
+            y1 = max(0, int(detections[0, 0, i, 4] * h))
+            x2 = min(w, int(detections[0, 0, i, 5] * w))
+            y2 = min(h, int(detections[0, 0, i, 6] * h))
+            boxes.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "conf": round(confidence, 3)})
+    return boxes
+
+
+def _detect_people_hog(img: np.ndarray):
+    """Detect people using HOG + SVM (fallback)."""
+    # Resize for speed
+    scale = 1.0
+    max_dim = 640
+    h, w = img.shape[:2]
+    if max(h, w) > max_dim:
+        scale = max_dim / max(h, w)
+        img = cv2.resize(img, (int(w * scale), int(h * scale)))
+
+    rects, weights = _person_net.detectMultiScale(
+        img, winStride=(4, 4), padding=(8, 8), scale=1.05
+    )
+
+    boxes = []
+    for (x, y, bw, bh), weight in zip(rects, weights):
+        conf = min(float(weight), 1.0)
+        if conf < 0.3:
+            continue
+        boxes.append({
+            "x1": int(x / scale), "y1": int(y / scale),
+            "x2": int((x + bw) / scale), "y2": int((y + bh) / scale),
+            "conf": round(conf, 3),
+        })
+
+    # Non-maximum suppression
+    if len(boxes) > 1:
+        boxes = _nms(boxes, 0.4)
+
+    return boxes
+
+
+def _nms(boxes: list, iou_thresh: float) -> list:
+    """Simple NMS to remove duplicate detections."""
+    if not boxes:
+        return boxes
+    sorted_boxes = sorted(boxes, key=lambda b: b["conf"], reverse=True)
+    keep = []
+    for b in sorted_boxes:
+        discard = False
+        for k in keep:
+            iou = _compute_iou(b, k)
+            if iou > iou_thresh:
+                discard = True
+                break
+        if not discard:
+            keep.append(b)
+    return keep
+
+
+def _compute_iou(a: dict, b: dict) -> float:
+    x1 = max(a["x1"], b["x1"])
+    y1 = max(a["y1"], b["y1"])
+    x2 = min(a["x2"], b["x2"])
+    y2 = min(a["y2"], b["y2"])
+    inter = max(0, x2 - x1) * max(0, y2 - y1)
+    area_a = (a["x2"] - a["x1"]) * (a["y2"] - a["y1"])
+    area_b = (b["x2"] - b["x1"]) * (b["y2"] - b["y1"])
+    union = area_a + area_b - inter
+    return inter / union if union > 0 else 0
+
+
+@app.post("/smartcount/frame")
+def smartcount_frame(data: FrameRequest):
+    """Detect people in a camera frame and return count + bounding boxes."""
+    img = _decode_image(data.image)
+    if img is None:
+        return {"count": 0, "boxes": [], "error": "無法解碼圖片"}
+
+    h, w = img.shape[:2]
+
+    if _person_net_type == "mobilenet-ssd":
+        boxes = _detect_people_mobilenet(img)
+    else:
+        boxes = _detect_people_hog(img)
+
+    return {
+        "count": len(boxes),
+        "boxes": boxes,
+        "img_w": w,
+        "img_h": h,
+        "detector": _person_net_type,
+    }
+
+
 @app.get("/")
 def root():
     return {
         "service": "BridgeSpace API",
-        "version": "2.1.0-multisport",
+        "version": "2.2.0-dashboard",
         "status": "running",
-        "modules": ["SessionManager", "AutoQueue", "SmartControl", "AlertEngine"],
+        "modules": ["SessionManager", "AutoQueue", "SmartControl", "AlertEngine", "SmartGate", "SmartCount"],
         "time": datetime.now().isoformat(),
     }
 

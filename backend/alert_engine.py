@@ -27,7 +27,7 @@ ADMIN_PHONE = os.environ.get("ADMIN_PHONE", "")
 
 # Twilio WhatsApp (for overstay notifications)
 TWILIO_WHATSAPP_FROM = os.environ.get("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")  # Twilio sandbox default
-ADMIN_WHATSAPP = os.environ.get("ADMIN_WHATSAPP", "")  # e.g. "whatsapp:+852XXXXXXXX"
+ADMIN_WHATSAPP = os.environ.get("ADMIN_WHATSAPP", "whatsapp:+85251009606")
 
 
 class AlertEngine:

@@ -3,1773 +3,2487 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BridgeSpace — 完整演示系統 v3.0</title>
+<title>BridgeSpace Control — AI Community Sports Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0F172A;color:#F1F5F9;font-family:'Microsoft JhengHei','PingFang TC','Segoe UI',system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#1E293B}::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
-/* Sidebar */
-#sidebar{width:110px;background:#1E293B;border-right:1px solid #334155;display:flex;flex-direction:column;padding:12px 6px;gap:4px;flex-shrink:0}
-.logo{text-align:center;padding:8px 4px 14px;border-bottom:1px solid #334155;margin-bottom:8px}
-.logo-title{font-weight:900;font-size:15px;color:#F97316}
-.logo-sub{font-size:10px;color:#64748B;margin-top:2px}
-.nav-btn{background:none;border:none;color:#94A3B8;padding:10px 6px;border-radius:8px;cursor:pointer;width:100%;text-align:center;font-size:11px;font-family:inherit;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px}
-.nav-btn .icon{font-size:20px}
-.nav-btn:hover{background:#253047;color:#F1F5F9}
-.nav-btn.active{background:#F97316;color:#fff}
-/* Main */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#topbar{background:#1E293B;border-bottom:1px solid #334155;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.topbar-title{font-weight:800;font-size:16px}
-.topbar-sub{font-size:12px;color:#64748B;margin-top:2px}
-.zone-pills{display:flex;gap:8px}
-.zone-pill{background:#0F172A;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700}
-#content{flex:1;overflow-y:auto;padding:20px}
-/* Cards */
-.card{background:#1E293B;border:1px solid #334155;border-radius:12px;padding:16px;margin-bottom:14px}
-.card-title{font-weight:800;font-size:14px;margin-bottom:12px;color:#F1F5F9}
-/* Buttons */
-.btn{border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s}
-.btn:disabled{opacity:.38;cursor:not-allowed;filter:grayscale(40%)}
-.btn-orange{background:#F97316;color:#fff}
-.btn-blue{background:#3B82F6;color:#fff}
-.btn-green{background:#22C55E;color:#fff}
-.btn-gray{background:#475569;color:#fff}
-.btn-red{background:#EF4444;color:#fff}
-.btn-sm{padding:6px 12px;font-size:12px}
-.btn-full{width:100%}
-/* Inputs */
-.inp{width:100%;padding:10px 14px;border-radius:8px;background:#0A1120;border:1px solid #334155;color:#F1F5F9;font-size:15px;font-family:inherit;outline:none}
-.inp:focus{border-color:#F97316}
-.label{font-size:13px;color:#94A3B8;display:block;margin-bottom:6px}
-/* Info bars */
-.info-bar{border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;line-height:1.5}
-.info-green{background:#22C55E12;border:1px solid #22C55E30;color:#22C55E}
-.info-orange{background:#F9731612;border:1px solid #F9731630;color:#F97316}
-.info-red{background:#EF444412;border:1px solid #EF444430;color:#EF4444}
-.info-blue{background:#3B82F612;border:1px solid #3B82F630;color:#3B82F6}
-/* Status badge */
-.badge{display:inline-block;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700}
-.badge-green{background:#22C55E20;color:#22C55E;border:1px solid #22C55E40}
-.badge-red{background:#EF444420;color:#EF4444;border:1px solid #EF444440}
-.badge-yellow{background:#F59E0B20;color:#F59E0B;border:1px solid #F59E0B40}
-.badge-blue{background:#3B82F620;color:#3B82F6;border:1px solid #3B82F640}
-.badge-gray{background:#47556920;color:#94A3B8;border:1px solid #47556940}
-/* Progress bar */
-.pbar-wrap{height:6px;background:#0A1120;border-radius:3px;overflow:hidden;margin-top:6px}
-.pbar{height:100%;border-radius:3px;transition:width .3s}
-/* Grid */
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-/* Webcam section */
-.cam-wrap{position:relative;width:100%;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:4/3}
-.cam-wrap video{width:100%;height:100%;object-fit:cover;display:block}
-.cam-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-.cam-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:12px;text-align:center}
-/* Step bar */
-.stepbar{display:flex;border-radius:8px;overflow:hidden;border:1px solid #334155;margin-bottom:16px}
-.step{flex:1;text-align:center;padding:9px 4px;font-size:12px;border-right:1px solid #334155}
-.step:last-child{border-right:none}
-.step.active{background:#F97316;color:#fff;font-weight:700}
-.step.done{background:#22C55E18;color:#22C55E}
-/* Scan result overlay */
-#scan-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:100}
-#scan-overlay.show{display:flex}
-.scan-box{background:#1E293B;border-radius:16px;padding:28px;width:420px;border:1px solid #334155;text-align:center}
-/* Count display */
-.count-big{font-size:72px;font-weight:900;line-height:1;color:#F97316}
-/* Bottom status */
-#statusbar{background:#1E293B;border-top:1px solid #334155;padding:6px 20px;display:flex;gap:20px;align-items:center;font-size:12px;color:#64748B;flex-shrink:0}
-.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
-.dot-green{background:#22C55E;box-shadow:0 0 6px #22C55E}
-.dot-red{background:#EF4444}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.pulsing{animation:pulse 1.5s infinite}
-/* Mode toggle */
-.mode-toggle{display:flex;background:#0A1120;border-radius:10px;padding:4px;gap:4px;margin-bottom:16px;border:1px solid #334155}
-.mode-btn{flex:1;padding:9px;border:none;border-radius:7px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;transition:all .15s;color:#94A3B8;background:none}
-.mode-btn.active{background:#F97316;color:#fff}
-/* Face photo preview */
-.face-preview{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #22C55E;display:block;margin:0 auto 14px}
-/* HKID input */
-.hkid-inp{width:100%;padding:14px 18px;border-radius:8px;background:#0A1120;border:2px solid #334155;color:#F1F5F9;font-size:22px;font-weight:700;font-family:'Courier New',monospace;letter-spacing:4px;text-align:center;outline:none;text-transform:uppercase}
-.hkid-inp:focus{border-color:#F97316}
-/* Demo badge */
-.demo-badge{display:inline-block;background:#F59E0B18;border:1px solid #F59E0B40;color:#F59E0B;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700}
-/* Session card */
-.session-card{background:#253047;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #334155}
-.session-timer{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums}
-/* Queue item */
-.q-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:#253047;margin-bottom:8px;border:1px solid #334155}
-.q-num{font-size:20px;font-weight:900;color:#F59E0B;width:36px;text-align:center}
-/* Alert item */
-.alert-item{padding:10px 14px;border-radius:8px;margin-bottom:8px;border-left:3px solid}
-.alert-critical{background:#EF444412;border-color:#EF4444}
-.alert-warning{background:#F59E0B12;border-color:#F59E0B}
-.alert-info{background:#3B82F612;border-color:#3B82F6}
-/* Device */
-.dev-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #334155}
-.dev-row:last-child{border-bottom:none}
+/* ══════════════════════════════════════════════════════════════════════════════
+   BridgeSpace Control — Cyberpunk HUD Aesthetic
+   Tron Legacy × Iron Man HUD × Cyberpunk 2077
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #05080f;
+  --panel: #0a1628;
+  --card: #0d1f3c;
+  --border: #1a3a6a;
+  --glow: #00d4ff;
+  --glow-dim: #00d4ff30;
+  --glow-micro: #00d4ff12;
+  --accent: #00d4ff;
+  --accent2: #ff6b35;
+  --green: #00ff88;
+  --red: #ff3366;
+  --amber: #ffaa00;
+  --text: #b8d4e8;
+  --text-bright: #e0f0ff;
+  --text-muted: #4a6a8a;
+  --font-head: 'Orbitron', sans-serif;
+  --font-tc: 'Noto Sans TC', sans-serif;
+  --font-mono: 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 14px; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-tc);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Scan-line CRT overlay ──────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 212, 255, 0.015) 2px,
+    rgba(0, 212, 255, 0.015) 4px
+  );
+  animation: scanlines 8s linear infinite;
+}
+@keyframes scanlines {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 200px; }
+}
+
+/* ── Hexagonal grid background ──────────────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100' fill='none' stroke='%2300d4ff' stroke-width='0.5'/%3E%3Cpath d='M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34' fill='none' stroke='%2300d4ff' stroke-width='0.5'/%3E%3C/svg%3E");
+  background-size: 56px 100px;
+  animation: hexDrift 20s linear infinite;
+}
+@keyframes hexDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 56px 100px; }
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); box-shadow: 0 0 6px var(--glow); }
+
+::selection { background: var(--glow-dim); color: var(--text-bright); }
+
+/* ── Keyframes ──────────────────────────────────────────────────────────── */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--green); }
+  50% { opacity: 0.6; box-shadow: 0 0 12px var(--green); }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 4px var(--glow), inset 0 0 4px var(--glow-micro); }
+  50% { box-shadow: 0 0 16px var(--glow), inset 0 0 8px var(--glow-micro); }
+}
+@keyframes borderGlow {
+  0%, 100% { border-color: var(--border); }
+  50% { border-color: var(--glow); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes glitch {
+  0% { text-shadow: 2px 0 var(--accent2), -2px 0 var(--accent); }
+  20% { text-shadow: -2px 0 var(--accent2), 2px 0 var(--accent); }
+  40% { text-shadow: 2px 2px var(--accent2), -1px -2px var(--accent); }
+  60% { text-shadow: -1px 2px var(--accent2), 1px -1px var(--accent); }
+  80% { text-shadow: 2px -2px var(--accent2), -2px 2px var(--accent); }
+  100% { text-shadow: 0 0 var(--accent2), 0 0 var(--accent); }
+}
+@keyframes counterUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes dataPulse {
+  0%, 100% { text-shadow: 0 0 8px var(--glow), 0 0 16px var(--glow-dim); }
+  50% { text-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow-dim); }
+}
+@keyframes borderRotate {
+  0% { --angle: 0deg; }
+  100% { --angle: 360deg; }
+}
+@keyframes fadeFlash {
+  0% { background: var(--glow-dim); }
+  100% { background: transparent; }
+}
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+
+#sidebar {
+  width: 88px;
+  background: rgba(10, 22, 40, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 8px 6px;
+  gap: 2px;
+  flex-shrink: 0;
+  z-index: 100;
+  position: relative;
+}
+#sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0; right: -1px; bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, var(--glow), transparent 30%, transparent 70%, var(--accent2));
+  z-index: 1;
+}
+
+.logo {
+  text-align: center;
+  padding: 12px 4px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+  position: relative;
+}
+.logo::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 10%;
+  width: 80%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glow), transparent);
+}
+.logo-title {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 10px var(--glow), 0 0 30px var(--glow-dim);
+  line-height: 1.5;
+}
+.logo-sub {
+  font-size: 8px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.nav-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 10px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  font-size: 9px;
+  font-family: var(--font-tc);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+.nav-btn .icon { font-size: 20px; filter: grayscale(30%); transition: filter 0.3s; }
+.nav-btn:hover {
+  background: rgba(0, 212, 255, 0.05);
+  border-color: var(--border);
+  color: var(--text);
+}
+.nav-btn:hover .icon { filter: grayscale(0%); }
+.nav-btn.active {
+  background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(0,212,255,0.04));
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 0 20px var(--glow-dim), inset 0 0 12px var(--glow-micro);
+  text-shadow: 0 0 8px var(--glow);
+}
+.nav-btn.active .icon { filter: drop-shadow(0 0 4px var(--glow)); }
+.nav-btn.active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 25%;
+  height: 50%;
+  width: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--glow);
+  border-radius: 1px;
+}
+
+/* ── Main Layout ────────────────────────────────────────────────────────── */
+
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+#topbar {
+  background: rgba(10, 22, 40, 0.8);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+#topbar::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glow), transparent 20%, transparent 80%, var(--accent2));
+}
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.topbar-title {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 10px var(--glow-dim);
+}
+.topbar-title:hover { animation: glitch 0.3s ease; }
+.topbar-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.zone-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.zone-pill {
+  background: rgba(5, 8, 15, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.3s;
+}
+.zone-pill.full { border-color: var(--red); color: var(--red); box-shadow: 0 0 6px rgba(255,51,102,0.2); }
+.zone-pill.busy { border-color: var(--amber); color: var(--amber); }
+.zone-pill.open { border-color: var(--green); color: var(--green); }
+
+#content { flex: 1; overflow-y: auto; padding: 16px 24px; }
+.tab-page { display: none; }
+.tab-page.active { display: block; animation: slideIn 0.3s ease; }
+
+/* ── Status Bar ─────────────────────────────────────────────────────────── */
+
+#statusbar {
+  background: rgba(10, 22, 40, 0.8);
+  border-top: 1px solid var(--border);
+  padding: 4px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  position: relative;
+}
+#statusbar::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent2), transparent 20%, transparent 80%, var(--glow));
+}
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.status-dot.online {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+.status-dot.offline {
+  background: var(--red);
+  box-shadow: 0 0 6px var(--red);
+  animation: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HUD CARD — the core visual component
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.card {
+  background: linear-gradient(135deg, rgba(13,31,60,0.9), rgba(10,22,40,0.95));
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 16px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+/* HUD corner brackets */
+.card::before, .card::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: var(--accent);
+  border-style: solid;
+  transition: border-color 0.3s;
+  pointer-events: none;
+}
+.card::before {
+  top: -1px; left: -1px;
+  border-width: 1px 0 0 1px;
+}
+.card::after {
+  bottom: -1px; right: -1px;
+  border-width: 0 1px 1px 0;
+}
+.card:hover {
+  border-color: rgba(0, 212, 255, 0.4);
+  box-shadow: 0 0 20px var(--glow-micro), inset 0 0 30px var(--glow-micro);
+}
+.card:hover::before, .card:hover::after {
+  border-color: var(--glow);
+  filter: drop-shadow(0 0 3px var(--glow));
+}
+
+.card-title {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 11px;
+  margin-bottom: 12px;
+  color: var(--text-bright);
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+}
+.card-title:hover { animation: glitch 0.3s ease; }
+.card-title .tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  background: rgba(255, 107, 53, 0.15);
+  border: 1px solid var(--accent2);
+  padding: 1px 7px;
+  border-radius: 2px;
+  color: var(--accent2);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+/* ── KPI HUD Panels ─────────────────────────────────────────────────────── */
+
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+
+.kpi {
+  background: linear-gradient(135deg, rgba(13,31,60,0.9), rgba(10,22,40,0.95));
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.kpi::before, .kpi::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--accent);
+  border-style: solid;
+  pointer-events: none;
+  transition: all 0.3s;
+}
+.kpi::before {
+  top: -1px; left: -1px;
+  border-width: 1px 0 0 1px;
+}
+.kpi::after {
+  bottom: -1px; right: -1px;
+  border-width: 0 1px 1px 0;
+}
+.kpi:hover {
+  border-color: rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 20px var(--glow-micro);
+}
+.kpi-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.kpi-value {
+  font-family: var(--font-head);
+  font-size: 32px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  animation: counterUp 0.5s ease;
+}
+.kpi-value.green { color: var(--green); text-shadow: 0 0 15px rgba(0,255,136,0.4), 0 0 30px rgba(0,255,136,0.15); }
+.kpi-value.amber { color: var(--amber); text-shadow: 0 0 15px rgba(255,170,0,0.4), 0 0 30px rgba(255,170,0,0.15); }
+.kpi-value.blue  { color: var(--accent); text-shadow: 0 0 15px var(--glow-dim), 0 0 30px var(--glow-micro); }
+.kpi-value.red   { color: var(--red); text-shadow: 0 0 15px rgba(255,51,102,0.4), 0 0 30px rgba(255,51,102,0.15); }
+
+/* ── Zone Grid ──────────────────────────────────────────────────────────── */
+
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.zone-card {
+  background: linear-gradient(160deg, rgba(13,31,60,0.85), rgba(10,22,40,0.95));
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 14px;
+  position: relative;
+  transition: all 0.3s;
+  overflow: hidden;
+}
+.zone-card::before, .zone-card::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--border);
+  border-style: solid;
+  pointer-events: none;
+  transition: all 0.3s;
+}
+.zone-card::before {
+  top: -1px; left: -1px;
+  border-width: 1px 0 0 1px;
+}
+.zone-card::after {
+  bottom: -1px; right: -1px;
+  border-width: 0 1px 1px 0;
+}
+.zone-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 24px var(--glow-dim), inset 0 0 20px var(--glow-micro);
+}
+.zone-card:hover::before, .zone-card:hover::after { border-color: var(--glow); }
+.zone-card .zone-bg-icon {
+  position: absolute;
+  right: 10px; bottom: 8px;
+  font-size: 36px;
+  opacity: 0.06;
+  pointer-events: none;
+}
+.zone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.zone-id {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--glow-dim);
+  letter-spacing: 0.05em;
+}
+.zone-name {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-tc);
+  margin-left: 6px;
+}
+.zone-status {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.zone-status.open { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+.zone-status.busy { background: rgba(255,170,0,0.1); color: var(--amber); border: 1px solid rgba(255,170,0,0.25); }
+.zone-status.full { background: rgba(255,51,102,0.1); color: var(--red); border: 1px solid rgba(255,51,102,0.25); }
+
+.zone-alloc {
+  font-size: 11px;
+  color: var(--text);
+  margin-bottom: 8px;
+  min-height: 18px;
+  font-family: var(--font-tc);
+}
+.zone-alloc .alloc-tag {
+  display: inline-block;
+  background: rgba(0,212,255,0.06);
+  border: 1px solid rgba(0,212,255,0.15);
+  border-radius: 2px;
+  padding: 1px 6px;
+  margin-right: 4px;
+  margin-bottom: 2px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+
+.unit-bar-wrap {
+  background: rgba(5,8,15,0.6);
+  border: 1px solid rgba(26,58,106,0.3);
+  border-radius: 1px;
+  height: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.unit-bar {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.5s ease, background 0.5s;
+  position: relative;
+}
+.unit-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  animation: shimmer 2s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.zone-stats {
+  display: flex;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.zone-stats span { display: flex; align-items: center; gap: 3px; }
+
+/* ── Demo Console ───────────────────────────────────────────────────────── */
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.demo-zone {
+  background: linear-gradient(160deg, rgba(13,31,60,0.8), rgba(10,22,40,0.9));
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 12px;
+  position: relative;
+}
+.demo-zone::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 10px; height: 10px;
+  border-top: 1px solid var(--accent);
+  border-left: 1px solid var(--accent);
+  pointer-events: none;
+}
+.demo-zone-header {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--accent);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  letter-spacing: 0.04em;
+}
+
+.preset-row { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
+.court-row { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 8px; }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+.btn {
+  border: none;
+  border-radius: 2px;
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-tc);
+  transition: all 0.25s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  text-transform: none;
+}
+.btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+.btn:active { transform: scale(0.97) translateY(0); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(40%); transform: none; }
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--accent), #0098cc);
+  color: #000;
+  box-shadow: 0 0 12px var(--glow-dim);
+}
+.btn-accent:hover { box-shadow: 0 0 20px var(--glow-dim); }
+.btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+.btn-green { background: linear-gradient(135deg, var(--green), #00cc6a); color: #000; }
+.btn-red { background: linear-gradient(135deg, var(--red), #cc0033); color: #fff; }
+.btn-muted { background: rgba(26,58,106,0.3); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 8px var(--glow-micro);
+}
+.btn-sm { padding: 5px 10px; font-size: 10px; }
+.btn-xs { padding: 3px 7px; font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.02em; }
+
+.btn-neon {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 8px var(--glow-dim), inset 0 0 8px var(--glow-micro);
+}
+.btn-neon:hover {
+  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 16px var(--glow-dim), inset 0 0 12px var(--glow-micro);
+}
+
+/* ── Inputs ──────────────────────────────────────────────────────────────── */
+
+.inp {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 2px;
+  background: rgba(5, 8, 15, 0.8);
+  border: 1px solid var(--border);
+  color: var(--text-bright);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: all 0.3s;
+}
+.inp:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--glow-dim), inset 0 0 8px var(--glow-micro);
+}
+.inp::placeholder { color: var(--text-muted); }
+
+select.inp {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a6a8a' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.label {
+  font-size: 9px;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Layouts ─────────────────────────────────────────────────────────────── */
+
+.cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ── Session / Queue lists ───────────────────────────────────────────────── */
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(26,58,106,0.25);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  transition: background 0.2s;
+}
+.list-item:hover { background: rgba(0,212,255,0.03); }
+.list-item:last-child { border-bottom: none; }
+
+.empty-state {
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* ── SmartGate ───────────────────────────────────────────────────────────── */
+
+.camera-box {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 4/3;
+  background: #000;
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.camera-box::before, .camera-box::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  border-color: var(--accent);
+  border-style: solid;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.6;
+}
+.camera-box::before { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+.camera-box::after { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+.camera-box video, .camera-box canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── SmartCount ──────────────────────────────────────────────────────────── */
+
+.count-display {
+  font-family: var(--font-head);
+  font-size: 72px;
+  font-weight: 900;
+  text-align: center;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow-dim);
+  animation: dataPulse 3s infinite;
+}
+
+/* ── Device Grid ─────────────────────────────────────────────────────────── */
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 12px;
+}
+
+.device-zone {
+  background: linear-gradient(160deg, rgba(13,31,60,0.8), rgba(10,22,40,0.9));
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 14px;
+  position: relative;
+}
+.device-zone::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 12px; height: 12px;
+  border-top: 1px solid var(--accent);
+  border-left: 1px solid var(--accent);
+  pointer-events: none;
+}
+.device-zone-title {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 8px var(--glow-dim);
+}
+
+.device-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(26,58,106,0.2);
+  font-size: 11px;
+}
+.device-row:last-child { border-bottom: none; }
+.device-label { display: flex; align-items: center; gap: 6px; font-family: var(--font-tc); }
+.device-status {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.device-status.on, .device-status.open, .device-status.deployed, .device-status.setup {
+  background: rgba(0,255,136,0.1);
+  color: var(--green);
+  border: 1px solid rgba(0,255,136,0.2);
+}
+.device-status.off, .device-status.locked, .device-status.retracted, .device-status.removed, .device-status.fold {
+  background: rgba(255,51,102,0.1);
+  color: var(--red);
+  border: 1px solid rgba(255,51,102,0.2);
+}
+.device-status.flash {
+  background: rgba(255,170,0,0.1);
+  color: var(--amber);
+  border: 1px solid rgba(255,170,0,0.2);
+  animation: pulse 0.5s infinite;
+}
+.device-status.na {
+  background: rgba(26,58,106,0.2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.device-btns { display: flex; gap: 3px; }
+
+/* ── Alert items ─────────────────────────────────────────────────────────── */
+
+.alert-item {
+  padding: 10px 14px;
+  border-left: 2px solid var(--border);
+  margin-bottom: 6px;
+  background: rgba(5, 8, 15, 0.6);
+  border-radius: 0 2px 2px 0;
+  font-size: 11px;
+  transition: background 0.2s;
+}
+.alert-item:hover { background: rgba(0, 212, 255, 0.03); }
+.alert-item.critical { border-left-color: var(--red); }
+.alert-item.warning { border-left-color: var(--amber); }
+.alert-item.info { border-left-color: var(--accent); }
+.alert-time {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Mode toggle ─────────────────────────────────────────────────────────── */
+
+.mode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.mode-toggle button {
+  background: rgba(5,8,15,0.6);
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 16px;
+  font-size: 11px;
+  font-family: var(--font-tc);
+  cursor: pointer;
+  transition: all 0.3s;
+  letter-spacing: 0.02em;
+}
+.mode-toggle button.active {
+  background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05));
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: inset 0 0 12px var(--glow-micro);
+}
+.mode-toggle button:hover:not(.active) {
+  background: rgba(0, 212, 255, 0.04);
+}
+
+/* ── Info box ────────────────────────────────────────────────────────────── */
+
+.info-box {
+  background: rgba(5,8,15,0.5);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px 14px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  position: relative;
+  letter-spacing: 0.02em;
+}
+.info-box::before {
+  content: '[ ';
+  color: var(--accent);
+}
+.info-box::after {
+  content: ' ]';
+  color: var(--accent);
+}
+
+/* ── Section Divider ─────────────────────────────────────────────────────── */
+
+.section-label {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-bright);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+/* ── Global Reset Button ─────────────────────────────────────────────────── */
+
+.btn-danger-lg {
+  background: linear-gradient(135deg, rgba(255,51,102,0.15), rgba(255,51,102,0.05));
+  color: var(--red);
+  border: 1px solid var(--red);
+  padding: 10px 24px;
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+.btn-danger-lg:hover {
+  background: linear-gradient(135deg, rgba(255,51,102,0.25), rgba(255,51,102,0.1));
+  box-shadow: 0 0 20px rgba(255,51,102,0.2);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .cols-2 { grid-template-columns: 1fr; }
+  #sidebar { width: 64px; }
+  .nav-btn { font-size: 8px; padding: 8px 2px; }
+  .nav-btn .icon { font-size: 18px; }
+  .logo-title { font-size: 9px; }
+  #content { padding: 12px 14px; }
+}
+@media (max-width: 600px) {
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .zone-grid { grid-template-columns: 1fr; }
+  .demo-grid { grid-template-columns: 1fr; }
+  .device-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Notification toast ──────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 60px;
+  right: 24px;
+  background: linear-gradient(135deg, rgba(13,31,60,0.95), rgba(10,22,40,0.98));
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 12px 20px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-bright);
+  box-shadow: 0 0 24px var(--glow-dim);
+  z-index: 10000;
+  animation: slideIn 0.3s ease;
+  max-width: 360px;
+}
+.toast::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 8px; height: 8px;
+  border-top: 1px solid var(--glow);
+  border-left: 1px solid var(--glow);
+}
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
-<div id="sidebar">
+<!-- ═════════════════════════════════════════════════════════════════════════════
+     SIDEBAR
+     ═════════════════════════════════════════════════════════════════════════════ -->
+
+<nav id="sidebar">
   <div class="logo">
-    <div class="logo-title">Bridge<br>Space</div>
-    <div class="logo-sub">展覽演示 v3</div>
+    <div class="logo-title">BRIDGE<br>SPACE</div>
+    <div class="logo-sub">CTRL v2.1</div>
   </div>
-  <button class="nav-btn active" onclick="showTab('dashboard')" id="nav-dashboard">
-    <span class="icon">🏠</span>主控大廳
+  <button class="nav-btn active" onclick="switchTab('dashboard')">
+    <span class="icon">📊</span>主控大廳
   </button>
-  <button class="nav-btn" onclick="showTab('smartgate')" id="nav-smartgate">
-    <span class="icon">🚪</span>SmartGate
+  <button class="nav-btn" onclick="switchTab('smartgate')">
+    <span class="icon">🔐</span>SmartGate
   </button>
-  <button class="nav-btn" onclick="showTab('smartcount')" id="nav-smartcount">
-    <span class="icon">👁️</span>SmartCount
+  <button class="nav-btn" onclick="switchTab('smartcount')">
+    <span class="icon">👁</span>SmartCount
   </button>
-  <button class="nav-btn" onclick="showTab('control')" id="nav-control">
-    <span class="icon">💡</span>SmartControl
+  <button class="nav-btn" onclick="switchTab('smartcontrol')">
+    <span class="icon">🎛</span>SmartControl
   </button>
-  <button class="nav-btn" onclick="showTab('alerts')" id="nav-alerts">
-    <span class="icon">🔔</span>AlertEngine
+  <button class="nav-btn" onclick="switchTab('alerts')">
+    <span class="icon">🚨</span>AlertEngine
   </button>
-</div>
+</nav>
 
-<!-- Main -->
+<!-- ═════════════════════════════════════════════════════════════════════════════
+     MAIN CONTENT
+     ═════════════════════════════════════════════════════════════════════════════ -->
+
 <div id="main">
-  <!-- Top bar -->
+  <!-- Top Bar -->
   <div id="topbar">
-    <div>
-      <div class="topbar-title" id="tb-title">主控大廳</div>
-      <div class="topbar-sub" id="tb-sub">所有子系統狀態總覽 — WebSocket 實時數據</div>
+    <div class="topbar-left">
+      <div>
+        <div class="topbar-title" id="tabTitle">DASHBOARD // 主控大廳</div>
+        <div class="topbar-sub">BridgeSpace AI Community Sports Hub &mdash; Under-Bridge Autonomous Zone</div>
+      </div>
     </div>
-    <div class="zone-pills" id="zone-pills"></div>
+    <div class="zone-pills" id="zonePills"></div>
   </div>
 
-  <!-- Content area -->
+  <!-- Content Area -->
   <div id="content">
-    <!-- ══ DASHBOARD ══════════════════════════════════════════════════════ -->
-    <div id="tab-dashboard">
-      <div class="grid4" id="kpi-row" style="margin-bottom:14px">
-        <div class="card" style="text-align:center">
-          <div style="color:#94A3B8;font-size:12px;margin-bottom:4px">場地剩餘</div>
-          <div style="font-size:40px;font-weight:900" id="kpi-total">—</div>
-          <div style="font-size:11px;color:#64748B" id="kpi-total-sub"></div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════════
+         TAB 1: DASHBOARD
+         ═════════════════════════════════════════════════════════════════════════ -->
+    <div id="tab-dashboard" class="tab-page active">
+
+      <!-- KPI HUD -->
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-label">Free Courts / 場地剩餘</div>
+          <div class="kpi-value green" id="kpiFreeCourts">--</div>
         </div>
-        <div class="card" style="text-align:center">
-          <div style="color:#94A3B8;font-size:12px;margin-bottom:4px">排隊人數</div>
-          <div style="font-size:40px;font-weight:900;color:#F59E0B" id="kpi-queue">—</div>
+        <div class="kpi">
+          <div class="kpi-label">Queue / 排隊人數</div>
+          <div class="kpi-value amber" id="kpiQueue">--</div>
         </div>
-        <div class="card" style="text-align:center">
-          <div style="color:#94A3B8;font-size:12px;margin-bottom:4px">活躍場次</div>
-          <div style="font-size:40px;font-weight:900;color:#3B82F6" id="kpi-sess">—</div>
+        <div class="kpi">
+          <div class="kpi-label">Sessions / 活躍場次</div>
+          <div class="kpi-value blue" id="kpiSessions">--</div>
         </div>
-        <div class="card" style="text-align:center">
-          <div style="color:#94A3B8;font-size:12px;margin-bottom:4px">警報數量</div>
-          <div style="font-size:40px;font-weight:900;color:#EF4444" id="kpi-alerts">—</div>
-        </div>
-      </div>
-      <div id="zone-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px"></div>
-
-      <!-- Demo control panel -->
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <div class="card-title" style="margin:0">🎮 Demo 控制台 — 場地預訂切換</div>
-          <span class="demo-badge">DEMO ONLY</span>
-        </div>
-        <div id="demo-ctrl-grid" class="grid2"></div>
-      </div>
-
-      <div class="grid2" style="margin-top:14px">
-        <div>
-          <div class="card">
-            <div class="card-title">⏱ 活躍場次</div>
-            <div id="sess-list"><span style="color:#64748B;font-size:13px">暫無場次</span></div>
-          </div>
-        </div>
-        <div>
-          <div class="card">
-            <div class="card-title">🕐 排隊列表</div>
-            <div id="queue-list"><span style="color:#64748B;font-size:13px">排隊列表空</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ SMARTGATE ══════════════════════════════════════════════════════ -->
-    <div id="tab-smartgate" style="display:none;max-width:700px;margin:0 auto">
-      <!-- Step bar -->
-      <div class="stepbar">
-        <div class="step active" id="sg-step-1">① 人臉掃描</div>
-        <div class="step" id="sg-step-2">② 用戶登記</div>
-        <div class="step" id="sg-step-3">③ 選擇場地</div>
-        <div class="step" id="sg-step-4">④ 場次進行</div>
-      </div>
-
-      <!-- Step 1: Face scan / HKID -->
-      <div id="sg-s1">
-        <div class="card">
-          <div class="card-title">🚪 SmartGate — 身份驗證</div>
-
-          <!-- Mode toggle -->
-          <div class="mode-toggle">
-            <button class="mode-btn active" id="sg-mode-face" onclick="sgSetMode('face')">📷 人臉識別</button>
-            <button class="mode-btn" id="sg-mode-hkid" onclick="sgSetMode('hkid')">🪪 身份證（HKID）</button>
-          </div>
-
-          <!-- Face scan panel -->
-          <div id="sg-panel-face">
-            <div class="info-blue" id="sg-scan-info">
-              📷 請允許攝像頭存取，然後點擊「掃描人臉」。系統將呼叫後端
-              <code>face_recognition</code> 進行真實識別。
-            </div>
-            <div class="cam-wrap" style="margin-bottom:14px">
-              <video id="sg-video" autoplay muted playsinline></video>
-              <canvas id="sg-canvas"></canvas>
-              <div class="cam-overlay" id="sg-cam-status" style="color:#94A3B8;font-size:13px">等待攝像頭…</div>
-            </div>
-            <div style="display:flex;gap:10px">
-              <button class="btn btn-gray btn-sm" onclick="startSGCamera()" id="sg-btn-cam">📷 開啟攝像頭</button>
-              <button class="btn btn-orange" onclick="doFaceScan()" id="sg-btn-scan" disabled style="flex:1">
-                🔍 掃描人臉（呼叫 /smartgate/scan）
-              </button>
-            </div>
-          </div>
-
-          <!-- HKID panel -->
-          <div id="sg-panel-hkid" style="display:none">
-            <div class="info-orange">
-              🪪 輸入香港身份證號碼（例：A123456(7)）作為識別碼。
-              系統將以 <code>HKID-XXXXXXX</code> 作為 Face ID 查找已登記用戶。
-            </div>
-            <div style="margin-bottom:8px">
-              <label class="label">身份證號碼</label>
-              <input class="hkid-inp" id="sg-hkid-inp" placeholder="A000000(0)"
-                onkeydown="if(event.key==='Enter')doHKIDLookup()"
-                oninput="this.value=this.value.toUpperCase()" maxlength="11"/>
-            </div>
-            <div style="color:#64748B;font-size:12px;margin-bottom:14px">
-              格式：1 個英文字母 + 6 位數字 + (檢查碼)，共 10 位
-            </div>
-            <button class="btn btn-orange btn-full" onclick="doHKIDLookup()" id="sg-btn-hkid">
-              🔍 查找 / 登記（以 HKID 作為識別碼）
-            </button>
-          </div>
-
-          <div id="sg-scan-err" style="color:#EF4444;font-size:13px;margin-top:10px;display:none"></div>
+        <div class="kpi">
+          <div class="kpi-label">Alerts / 警報數量</div>
+          <div class="kpi-value red" id="kpiAlerts">--</div>
         </div>
       </div>
 
-      <!-- Step 2: Register new user -->
-      <div id="sg-s2" style="display:none">
-        <div class="card">
-          <div class="card-title">📋 新用戶登記</div>
-          <div class="info-orange" id="sg-reg-info">新用戶，請填寫資料完成登記。</div>
+      <!-- Zone Overview Grid -->
+      <div class="section-label">Zone Overview / 場地總覽</div>
+      <div class="zone-grid" id="zoneGrid"></div>
 
-          <!-- Face photo preview (only shown when face mode) -->
-          <div id="sg-face-preview-wrap" style="text-align:center;margin-bottom:16px;display:none">
-            <img id="sg-face-preview" class="face-preview" src="" alt="人臉照片"/>
-            <div style="font-size:11px;color:#64748B;margin-top:4px">已擷取人臉照片 ✓</div>
-          </div>
-
-          <!-- HKID badge (only shown when hkid mode) -->
-          <div id="sg-hkid-badge" style="display:none;text-align:center;margin-bottom:16px">
-            <div style="background:#F9731618;border:1px solid #F9731640;border-radius:10px;padding:12px">
-              <div style="font-size:12px;color:#94A3B8;margin-bottom:4px">身份證號碼</div>
-              <div style="font-size:22px;font-weight:900;letter-spacing:3px;font-family:monospace;color:#F97316" id="sg-hkid-badge-num">—</div>
-            </div>
-          </div>
-
-          <div style="margin-bottom:14px">
-            <label class="label">姓名</label>
-            <input class="inp" id="sg-name" placeholder="例：陳大文"
-              onkeydown="if(event.key==='Enter')document.getElementById('sg-phone').focus()"/>
-          </div>
-          <div style="margin-bottom:6px">
-            <label class="label">電話號碼（香港 8 位）</label>
-            <input class="inp" id="sg-phone" placeholder="例：91234567"
-              type="tel" inputmode="numeric" maxlength="8"
-              oninput="this.value=this.value.replace(/\D/g,'')"
-              onkeydown="if(event.key==='Enter')doRegister()"/>
-          </div>
-          <div style="font-size:11px;color:#64748B;margin-bottom:14px">
-            ⚠ 必須為 8 位數字（香港電話格式）
-          </div>
-          <div style="background:#0A1120;border-radius:8px;padding:10px 14px;font-size:12px;color:#64748B;margin-bottom:14px">
-            識別碼：<code id="sg-face-id-display" style="color:#F97316">—</code>
-          </div>
-          <div id="sg-reg-err" style="color:#EF4444;font-size:13px;margin-bottom:10px;display:none"></div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-gray" onclick="sgGoStep(1)" id="sg-btn-back2">← 返回</button>
-            <button class="btn btn-orange" onclick="doRegister()" id="sg-btn-reg" style="flex:1">
-              📋 提交登記（/users/register + 儲存人臉）
-            </button>
-          </div>
-        </div>
+      <!-- Area Info -->
+      <div class="info-box">
+        10 zones &times; 4 units &times; 24.5&#13217; = 980&#13217; (+ circulation &asymp; 1,274&#13217; &middot; bridge 31%)
       </div>
 
-      <!-- Step 3: Court select -->
-      <div id="sg-s3" style="display:none">
-        <div class="card">
-          <div class="card-title" id="sg-welcome">👋 歡迎！請選擇場地</div>
-          <div style="font-size:12px;color:#64748B;margin-bottom:12px">
-            🟢 空閒可預訂 &nbsp;🔴 已有人預訂 &nbsp;點擊場地卡片即可選擇
-          </div>
-          <div id="sg-court-grid" style="margin-bottom:16px"></div>
-          <div id="sg-zone-err" style="color:#EF4444;font-size:13px;margin-bottom:10px;display:none"></div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-gray" onclick="sgGoStep(1)">← 重新掃描</button>
-            <button class="btn btn-orange" onclick="doJoinQueue()" id="sg-btn-join" style="flex:1">
-              預訂場地 / 加入排隊（/queue/join）
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 4: Session active -->
-      <div id="sg-s4" style="display:none">
-        <div class="card" style="text-align:center">
-          <div style="font-size:48px;margin-bottom:10px" id="sg-sess-icon">✅</div>
-          <div style="font-weight:900;font-size:22px;margin-bottom:8px" id="sg-sess-title">場次進行中</div>
-          <div style="color:#64748B;font-size:14px;margin-bottom:20px" id="sg-sess-info"></div>
-          <div class="session-timer pulsing" id="sg-timer" style="color:#22C55E;margin-bottom:20px">—</div>
-          <div style="color:#94A3B8;font-size:12px;margin-bottom:20px">剩餘時間</div>
-          <div style="display:flex;gap:10px;justify-content:center">
-            <button class="btn btn-blue" onclick="doExtend()" id="sg-btn-ext">⏱ 延長時間（/session/extend）</button>
-            <button class="btn btn-gray" onclick="sgReset()">🔄 重置（新用戶）</button>
-          </div>
-        </div>
-        <!-- Queue result (waiting) -->
-        <div id="sg-queue-waiting" style="display:none" class="card" style="text-align:center;margin-top:14px">
-          <div style="font-size:48px;margin-bottom:8px">🎫</div>
-          <div style="font-weight:900;font-size:20px;margin-bottom:8px">已加入排隊</div>
-          <div style="font-size:64px;font-weight:900;color:#F59E0B;line-height:1" id="sg-q-num">—</div>
-          <div style="color:#94A3B8;font-size:13px;margin-top:8px;margin-bottom:16px">排隊號碼 · 請耐心等候叫號</div>
-          <button class="btn btn-gray btn-full" onclick="sgReset()">🔄 完成（返回首頁）</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ SMARTCOUNT ══════════════════════════════════════════════════════ -->
-    <div id="tab-smartcount" style="display:none">
-      <!-- Zone people count overview (moved from dashboard) -->
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div class="card-title" style="margin:0">👥 各區域人數概覽</div>
-          <span style="font-size:12px;color:#64748B">即時數據 · SmartCount + WebSocket</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="sc-zone-people"></div>
-      </div>
-      <div class="grid2">
-        <div>
-          <div class="card">
-            <!-- Mode toggle header -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <div style="font-weight:800;font-size:14px;color:#F1F5F9">📹 偵測輸入（YOLOv8n）</div>
-              <div class="mode-toggle" style="margin:0;width:auto">
-                <button class="mode-btn active" id="sc-mode-real" onclick="scSetMode('real')">📷 真實偵測</button>
-                <button class="mode-btn" id="sc-mode-demo" onclick="scSetMode('demo')">🎭 Demo 偵測</button>
-              </div>
-            </div>
-            <!-- Demo controls (hidden by default) -->
-            <div id="sc-panel-demo" style="display:none;margin-bottom:12px">
-              <div class="info-orange" style="margin-bottom:10px">🎭 Demo 模式：模擬 YOLOv8n 偵測結果，無需攝像頭或後端 API。</div>
-              <div style="display:flex;align-items:center;gap:12px">
-                <span style="font-size:13px;color:#94A3B8;min-width:70px">演示人數：</span>
-                <button class="btn btn-red btn-sm" onclick="scDemoAdj(-1)">－</button>
-                <div style="font-size:24px;font-weight:900;color:#F97316;min-width:36px;text-align:center" id="sc-demo-n">3</div>
-                <button class="btn btn-green btn-sm" onclick="scDemoAdj(+1)">＋</button>
-                <span style="font-size:12px;color:#64748B">（最多 12 人）</span>
-              </div>
-            </div>
-            <!-- Camera/Canvas (shared between modes) -->
-            <div class="cam-wrap" style="margin-bottom:12px">
-              <video id="sc-video" autoplay muted playsinline></video>
-              <canvas id="sc-canvas"></canvas>
-              <div class="cam-overlay" id="sc-cam-status" style="color:#94A3B8;font-size:13px">等待攝像頭…</div>
-            </div>
-            <!-- Real mode buttons -->
-            <div id="sc-real-btns" style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-gray btn-sm" onclick="startSCCamera()" id="sc-btn-cam">📷 開啟攝像頭</button>
-              <button class="btn btn-green btn-sm" onclick="startSCDetect()" id="sc-btn-start" disabled>▶ 開始偵測</button>
-              <button class="btn btn-red btn-sm" onclick="stopSCDetect()" id="sc-btn-stop" disabled>⏹ 停止</button>
-            </div>
-            <!-- Demo mode buttons -->
-            <div id="sc-demo-btns" style="display:none;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-green btn-sm" onclick="startSCDetectDemo()" id="sc-btn-demo-start">▶ 開始 Demo 偵測</button>
-              <button class="btn btn-red btn-sm" onclick="stopSCDetect()" id="sc-btn-demo-stop" disabled>⏹ 停止</button>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="card" style="text-align:center">
-            <div class="card-title">偵測結果</div>
-            <div class="count-big pulsing" id="sc-count">—</div>
-            <div style="color:#94A3B8;font-size:14px;margin:6px 0 20px">偵測到的人數</div>
-            <div style="font-size:12px;color:#64748B;margin-bottom:16px" id="sc-fps">FPS: —</div>
-            <div style="border-top:1px solid #334155;padding-top:16px">
-              <div class="label" style="text-align:left">推送至區域（→ /zones/occupancy）</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-                <button class="btn btn-blue btn-sm" onclick="scPushZone('A')">Zone A</button>
-                <button class="btn btn-blue btn-sm" onclick="scPushZone('B')">Zone B</button>
-                <button class="btn btn-blue btn-sm" onclick="scPushZone('C')">Zone C</button>
-                <button class="btn btn-blue btn-sm" onclick="scPushZone('D')">Zone D</button>
-                <button class="btn btn-blue btn-sm" onclick="scPushZone('E')">Zone E</button>
-              </div>
-              <div id="sc-push-log" style="font-size:12px;color:#64748B;max-height:80px;overflow-y:auto"></div>
-            </div>
-          </div>
-          <div class="card" style="margin-top:0">
-            <div class="card-title">偵測框列表</div>
-            <div id="sc-boxes" style="font-size:12px;color:#64748B;max-height:140px;overflow-y:auto">
-              （尚未偵測）
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ SMARTCONTROL ════════════════════════════════════════════════════ -->
-    <div id="tab-control" style="display:none">
-      <div class="info-blue" style="margin-bottom:14px">
-        💡 SmartControl 根據 SessionManager 自動觸發——有場次時開燈/部署器材/開閘，場次結束時關閉。
-        以下狀態來自 WebSocket 即時推送。
-      </div>
-      <div class="grid2" id="dev-grid"></div>
-    </div>
-
-    <!-- ══ ALERTENGINE ════════════════════════════════════════════════════ -->
-    <div id="tab-alerts" style="display:none">
-      <div class="grid4" style="margin-bottom:14px">
-        <div class="card" style="text-align:center">
-          <div style="color:#EF4444;font-size:12px;margin-bottom:4px">緊急</div>
-          <div style="font-size:32px;font-weight:900;color:#EF4444" id="alt-critical">0</div>
-        </div>
-        <div class="card" style="text-align:center">
-          <div style="color:#F59E0B;font-size:12px;margin-bottom:4px">警告</div>
-          <div style="font-size:32px;font-weight:900;color:#F59E0B" id="alt-warning">0</div>
-        </div>
-        <div class="card" style="text-align:center">
-          <div style="color:#3B82F6;font-size:12px;margin-bottom:4px">資訊</div>
-          <div style="font-size:32px;font-weight:900;color:#3B82F6" id="alt-info">0</div>
-        </div>
-        <div class="card" style="text-align:center">
-          <div style="color:#94A3B8;font-size:12px;margin-bottom:4px">總計</div>
-          <div style="font-size:32px;font-weight:900" id="alt-total">0</div>
-        </div>
-      </div>
-      <!-- WhatsApp Demo Trigger -->
-      <div class="card" style="margin-bottom:14px;border:1px solid #22C55E30">
-        <div class="card-title">📲 WhatsApp 通知 Demo</div>
-        <div style="font-size:13px;color:#94A3B8;margin-bottom:10px">
-          模擬超時未離場情景：發送 WhatsApp 訊息至管理員手機（Twilio WhatsApp API）
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <select id="wa-zone" style="padding:6px 12px;border-radius:6px;background:#0F172A;color:#E2E8F0;border:1px solid #334155;font-family:inherit;font-size:13px">
-            <option value="A">Zone A</option><option value="B">Zone B</option>
-            <option value="C">Zone C</option><option value="D">Zone D</option><option value="E">Zone E</option>
-          </select>
-          <input id="wa-user" placeholder="用戶名（如：陳大文）" value="Demo User" style="padding:6px 12px;border-radius:6px;background:#0F172A;color:#E2E8F0;border:1px solid #334155;font-family:inherit;font-size:13px;width:160px">
-          <input id="wa-mins" type="number" value="5" min="1" max="30" style="padding:6px 12px;border-radius:6px;background:#0F172A;color:#E2E8F0;border:1px solid #334155;font-family:inherit;font-size:13px;width:80px">
-          <span style="color:#64748B;font-size:12px">分鐘超時</span>
-          <button onclick="demoWhatsApp()" style="padding:6px 16px;border-radius:6px;background:#22C55E;color:#fff;border:none;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.background='#16A34A'" onmouseout="this.style.background='#22C55E'">
-            📲 發送 WhatsApp
-          </button>
-        </div>
-        <div id="wa-result" style="margin-top:8px;font-size:12px"></div>
-      </div>
-
+      <!-- Demo Console -->
       <div class="card">
-        <div class="card-title">⚠️ 警報記錄（AlertEngine）</div>
-        <div id="alert-feed"><span style="color:#64748B;font-size:13px">暫無警報</span></div>
+        <div class="card-title">Demo 控制台 <span class="tag">EXHIBITION</span></div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+          <button class="btn-danger-lg" onclick="window.demoResetAll()">RESET ALL / 全部重置</button>
+        </div>
+        <div class="demo-grid" id="demoGrid"></div>
+      </div>
+
+      <!-- Sessions + Queue -->
+      <div class="cols-2">
+        <div class="card">
+          <div class="card-title">Active Sessions / 活躍場次</div>
+          <div id="sessionList" style="max-height:280px;overflow-y:auto;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Queue / 排隊列表</div>
+          <div id="queueList" style="max-height:280px;overflow-y:auto;"></div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Status bar -->
+    <!-- ═════════════════════════════════════════════════════════════════════════
+         TAB 2: SMARTGATE
+         ═════════════════════════════════════════════════════════════════════════ -->
+    <div id="tab-smartgate" class="tab-page">
+      <div class="mode-toggle" id="gateMode">
+        <button class="active" onclick="setGateMode('face')">人臉識別 Face</button>
+        <button onclick="setGateMode('hkid')">身份證 HKID</button>
+      </div>
+
+      <div class="cols-2">
+        <div>
+          <!-- Camera -->
+          <div class="card">
+            <div class="card-title">Camera Preview / 攝像頭</div>
+            <div class="camera-box">
+              <video id="gateVideo" autoplay playsinline muted></video>
+              <canvas id="gateCanvas"></canvas>
+            </div>
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <button class="btn btn-accent" onclick="startGateCamera()">開啟攝像頭</button>
+              <button class="btn btn-neon" onclick="gateScan()">Scan / 掃描</button>
+              <button class="btn btn-muted" onclick="stopGateCamera()">關閉</button>
+            </div>
+          </div>
+
+          <!-- Result -->
+          <div class="card" id="gateResult" style="display:none;">
+            <div class="card-title">Scan Result / 識別結果</div>
+            <div id="gateResultContent"></div>
+          </div>
+        </div>
+
+        <div>
+          <!-- Registration Form -->
+          <div class="card" id="gateRegForm" style="display:none;">
+            <div class="card-title">Registration / 新用戶註冊</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <label class="label">Name / 姓名</label>
+                <input class="inp" id="regName" placeholder="Enter name">
+              </div>
+              <div>
+                <label class="label">Phone / 電話</label>
+                <input class="inp" id="regPhone" placeholder="Enter phone number">
+              </div>
+              <input type="hidden" id="regFaceId">
+              <button class="btn btn-green" onclick="registerUser()">Register / 註冊</button>
+            </div>
+          </div>
+
+          <!-- Zone Select -->
+          <div class="card" id="gateZoneSelect" style="display:none;">
+            <div class="card-title">Select Zone / 選擇場地</div>
+            <div id="gateZones" class="zone-grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));"></div>
+          </div>
+
+          <!-- Session Timer -->
+          <div class="card" id="gateSession" style="display:none;">
+            <div class="card-title">Session Timer / 場次計時</div>
+            <div id="gateSessionInfo"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════════
+         TAB 3: SMARTCOUNT
+         ═════════════════════════════════════════════════════════════════════════ -->
+    <div id="tab-smartcount" class="tab-page">
+      <div class="mode-toggle" id="countMode">
+        <button class="active" onclick="setCountMode('camera')">Camera / 攝像頭偵測</button>
+        <button onclick="setCountMode('demo')">Demo / 模擬</button>
+      </div>
+
+      <div class="cols-2">
+        <div>
+          <!-- Camera / Demo area -->
+          <div class="card">
+            <div class="card-title">Detection View / 偵測視窗</div>
+            <div id="countCameraSection">
+              <div class="camera-box" style="max-width:100%;">
+                <video id="countVideo" autoplay playsinline muted></video>
+                <canvas id="countCanvas"></canvas>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <button class="btn btn-accent" onclick="startCountCamera()">開啟攝像頭</button>
+                <button class="btn btn-neon" onclick="countCapture()">單幀偵測</button>
+                <button class="btn btn-green" id="countAutoBtn" onclick="toggleCountAuto()">自動偵測</button>
+                <button class="btn btn-muted" onclick="stopCountCamera()">關閉</button>
+                <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);" id="countFps">FPS: --</span>
+              </div>
+            </div>
+            <div id="countDemoSection" style="display:none;">
+              <div style="text-align:center;padding:30px 0;">
+                <div class="count-display" id="demoCount">0</div>
+                <div style="color:var(--text-muted);font-size:10px;margin-top:8px;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;">Simulated Count</div>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:center;">
+                <button class="btn btn-green" onclick="demoCountChange(1)">+ Add</button>
+                <button class="btn btn-red" onclick="demoCountChange(-1)">- Remove</button>
+                <button class="btn btn-muted" onclick="demoCountReset()">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <!-- Detection Result -->
+          <div class="card">
+            <div class="card-title">Detection Result / 偵測結果</div>
+            <div class="count-display" id="countResult">0</div>
+            <div style="text-align:center;color:var(--text-muted);font-size:10px;margin:8px 0;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;">People Detected</div>
+          </div>
+
+          <!-- Push to Zone -->
+          <div class="card">
+            <div class="card-title">Push to Zone / 推送至場地</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;" id="countPushBtns"></div>
+          </div>
+
+          <!-- Bounding Boxes -->
+          <div class="card">
+            <div class="card-title">Bounding Boxes / 偵測框</div>
+            <div id="countBoxList" style="max-height:200px;overflow-y:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════════
+         TAB 4: SMARTCONTROL
+         ═════════════════════════════════════════════════════════════════════════ -->
+    <div id="tab-smartcontrol" class="tab-page">
+      <div class="section-label">IoT Device Matrix / 設備控制矩陣</div>
+      <div class="device-grid" id="deviceGrid"></div>
+    </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════════
+         TAB 5: ALERTENGINE
+         ═════════════════════════════════════════════════════════════════════════ -->
+    <div id="tab-alerts" class="tab-page">
+      <div class="cols-2">
+        <div>
+          <!-- Alert Stats -->
+          <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
+            <div class="kpi">
+              <div class="kpi-label">Critical / 緊急</div>
+              <div class="kpi-value red" id="alertCrit">0</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Warning / 警告</div>
+              <div class="kpi-value amber" id="alertWarn">0</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Info / 資訊</div>
+              <div class="kpi-value blue" id="alertInfo">0</div>
+            </div>
+          </div>
+
+          <!-- WhatsApp Demo -->
+          <div class="card">
+            <div class="card-title">WhatsApp Demo</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <label class="label">Zone ID</label>
+                <select class="inp" id="waZone">
+                  <option value="A">Zone A</option><option value="B">Zone B</option>
+                  <option value="C">Zone C</option><option value="D">Zone D</option>
+                  <option value="E">Zone E</option><option value="F">Zone F</option>
+                  <option value="G">Zone G</option><option value="H">Zone H</option>
+                  <option value="I">Zone I</option><option value="J">Zone J</option>
+                </select>
+              </div>
+              <div>
+                <label class="label">User Name</label>
+                <input class="inp" id="waUser" value="Demo User" placeholder="User name">
+              </div>
+              <div>
+                <label class="label">Minutes Over / 超時分鐘</label>
+                <input class="inp" id="waMinutes" type="number" value="5" min="1">
+              </div>
+              <button class="btn btn-accent" onclick="sendWhatsApp()">Send WhatsApp Test / 發送測試</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <!-- Alert Log -->
+          <div class="card">
+            <div class="card-title">Alert Log / 警報記錄</div>
+            <div id="alertLog" style="max-height:500px;overflow-y:auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- Status Bar -->
   <div id="statusbar">
-    <span><span class="status-dot" id="ws-dot" style="background:#EF4444"></span><span id="ws-label">連接中…</span></span>
-    <span id="sb-time"></span>
-    <span style="margin-left:auto;color:#334155">http://localhost:8000</span>
+    <div>
+      <span class="status-dot offline" id="statusDot"></span>
+      <span id="statusText">BACKEND OFFLINE</span>
+    </div>
+    <div style="display:flex;gap:16px;align-items:center;">
+      <span id="wsStatus" style="color:var(--text-muted);">WS: ---</span>
+      <span id="statusTime">--:--:--</span>
+    </div>
   </div>
 </div>
 
-<!-- Called overlay -->
-<div id="called-overlay" style="position:fixed;top:20px;right:20px;background:#F59E0B;color:#000;border-radius:12px;padding:16px 22px;font-weight:900;font-size:18px;display:none;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,.4)">
-  🔔 叫號：Zone <span id="co-zone">—</span> · <span id="co-num">—</span> 號
-</div>
+<!-- Toast container -->
+<div id="toastContainer"></div>
 
+<!-- ═════════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ═════════════════════════════════════════════════════════════════════════════ -->
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-// Config
-// ═══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════
+//  BridgeSpace Dashboard — Cyberpunk HUD Edition
+// ══════════════════════════════════════════════════════════════════════════════
+
 const API = 'http://localhost:8000';
-const WS  = 'ws://localhost:8000/ws';
+const WS_URL = 'ws://localhost:8000/ws';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// State
-// ═══════════════════════════════════════════════════════════════════════════
-let wsConn = null;
-let zones  = [];
-let queue  = [];
+// ── Sport Config (loaded from /zone-config, with fallback) ──────────────────
+
+const SPORT_CONFIG_DEFAULT = {
+  '乒乓球': { en: 'Table Tennis', icon: '🏓', unit_cost: 1, duration: 1800, equipment: ['table'] },
+  '羽毛球': { en: 'Badminton',    icon: '🏸', unit_cost: 2, duration: 2700, equipment: ['net'] },
+  '匹克球': { en: 'Pickleball',   icon: '🏓', unit_cost: 2, duration: 1800, equipment: ['net'] },
+  '籃球':   { en: 'Basketball',   icon: '🏀', unit_cost: 4, duration: 2700, equipment: ['hoop'] },
+  '排球':   { en: 'Volleyball',   icon: '🏐', unit_cost: 4, duration: 2700, equipment: ['net'] },
+};
+
+const ALLOC_PRESETS_DEFAULT = {
+  '全籃球':       [{ sport: '籃球', count: 1 }],
+  '全排球':       [{ sport: '排球', count: 1 }],
+  '全羽毛球':     [{ sport: '羽毛球', count: 2 }],
+  '全乒乓球':     [{ sport: '乒乓球', count: 4 }],
+  '全匹克球':     [{ sport: '匹克球', count: 2 }],
+  '羽毛球+乒乓球': [{ sport: '羽毛球', count: 1 }, { sport: '乒乓球', count: 2 }],
+  '匹克球+乒乓球': [{ sport: '匹克球', count: 1 }, { sport: '乒乓球', count: 2 }],
+};
+
+let SPORT_CONFIG = { ...SPORT_CONFIG_DEFAULT };
+let ALLOC_PRESETS = { ...ALLOC_PRESETS_DEFAULT };
+
+const ZONE_IDS = ['A','B','C','D','E','F','G','H','I','J'];
+const TOTAL_UNITS = 4;
+
+// ── State ───────────────────────────────────────────────────────────────────
+
+let zones = [];
 let sessions = [];
+let queue = [];
+let devices = {};
+let alerts = [];
+let backendOnline = false;
+let ws = null;
+let wsConnected = false;
 
-// Ensure all 5 zones exist in state
-function ensureAllZones() {
-  Object.keys(ZONE_META).forEach(zid => {
-    if (!zones.find(z => z.id === zid)) {
-      zones.push({id:zid, current_count:0, capacity:ZONE_CAP[zid]||30, status:'open'});
-    }
-  });
-}
-let devices  = {};
-let alerts   = [];
+// ── Toast Notifications ─────────────────────────────────────────────────────
 
-// SmartGate state
-let sgFaceId   = null;
-let sgUserId   = null;
-let sgUserName = null;
-let sgZone     = null;
-let sgCourt    = null; // selected court object {id, name, icon, dur}
-let sgSession  = null;
-let sgCapturedB64 = null;
-let sgTimerIv  = null;
-let sgElapsed  = 0;
-let sgCamStream = null;
-
-// Court booking state — synced from backend sessions
-let courtBookings = {}; // { courtId: {booked:true, user_name, user_id, session_id} }
-
-// Sync courtBookings from backend sessions array + sync zoneMode from backend zones
-function syncCourtBookings() {
-  // Sync zone sport mode from backend
-  const sportToMode = {
-    '籃球':'basketball','排球':'volleyball',
-    '羽毛球':'badminton','乒乓球':'tabletennis','匹克球':'pickleball'
-  };
-  zones.forEach(z => {
-    if (z.current_sport && sportToMode[z.current_sport]) {
-      zoneMode[z.id] = sportToMode[z.current_sport];
-    }
-  });
-
-  // Build courtBookings from active sessions
-  const newBookings = {};
-  sessions.forEach(s => {
-    const zid = s.zone_id;
-    if (!ZONE_META[zid]) return;
-    const courts = getZoneCourts(zid);
-    const courtIdx = (s.court_num || 1) - 1;
-    if (courts[courtIdx]) {
-      newBookings[courts[courtIdx].id] = {
-        booked: true,
-        user_name: s.name || s.user_name || s.user_id,
-        user_id: s.user_id,
-        session_id: s.id,
-        status: s.status
-      };
-    }
-  });
-  courtBookings = newBookings;
+function showToast(msg, duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    toast.style.transition = 'all 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 }
 
-// SmartCount state
-let scCamStream  = null;
-let scDetectIv   = null;
-let scLastCount  = 0;
-let scFrameTs    = 0;
-let scFpsFrames  = 0;
-let scFpsTs      = Date.now();
-let scMode       = 'real'; // 'real' | 'demo'
-let scDemoN      = 3;
-let scDemoPeople = [];
+// ── Tab Switching ───────────────────────────────────────────────────────────
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Helpers
-// ═══════════════════════════════════════════════════════════════════════════
-async function api(method, path, body) {
-  const opts = {method, headers:{'Content-Type':'application/json'}};
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(API + path, opts);
-  if (!r.ok) {
-    let msg = r.statusText;
-    try { msg = (await r.json()).detail || msg; } catch {}
-    throw new Error(msg);
-  }
-  return r.json();
+const TAB_TITLES = {
+  dashboard:    'DASHBOARD // 主控大廳',
+  smartgate:    'SMARTGATE // 人臉識別',
+  smartcount:   'SMARTCOUNT // 人數偵測',
+  smartcontrol: 'SMARTCONTROL // IoT 設備',
+  alerts:       'ALERTENGINE // 警報系統',
+};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('tab-' + tab);
+  if (page) page.classList.add('active');
+  const btns = document.querySelectorAll('.nav-btn');
+  const idx = ['dashboard','smartgate','smartcount','smartcontrol','alerts'].indexOf(tab);
+  if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
+  document.getElementById('tabTitle').textContent = TAB_TITLES[tab] || tab;
 }
 
-function fmtSecs(s) {
-  if (s == null || s < 0) return '∞';
-  const m = Math.floor(s/60), sec = s%60;
-  return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
-}
+// ── API Helpers ─────────────────────────────────────────────────────────────
 
-function pctColor(pct) {
-  return pct >= 90 ? '#EF4444' : pct >= 70 ? '#F59E0B' : '#22C55E';
-}
-
-function timeAgo(iso) {
-  const d = (Date.now() - new Date(iso)) / 1000;
-  if (d < 5)  return '剛剛';
-  if (d < 60) return Math.round(d) + '秒前';
-  if (d < 3600) return Math.round(d/60) + '分前';
-  return Math.round(d/3600) + '小時前';
-}
-
-// Capture current video frame as base64 JPEG
-function captureFrame(videoEl) {
-  const c = document.createElement('canvas');
-  c.width  = videoEl.videoWidth  || 640;
-  c.height = videoEl.videoHeight || 480;
-  c.getContext('2d').drawImage(videoEl, 0, 0);
-  return c.toDataURL('image/jpeg', 0.85);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// WebSocket
-// ═══════════════════════════════════════════════════════════════════════════
-function connectWS() {
+async function apiFetch(path, opts = {}) {
   try {
-    wsConn = new WebSocket(WS);
-    wsConn.onopen = () => {
-      setWsStatus(true);
-      api('GET','/alerts').then(d => { alerts = d; renderAlerts(); }).catch(()=>{});
-      api('GET','/devices').then(d => { devices = d; renderDevices(); }).catch(()=>{});
+    const res = await fetch(API + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...opts,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || res.statusText);
+    }
+    return await res.json();
+  } catch (e) {
+    console.error(`API ${path}:`, e.message);
+    throw e;
+  }
+}
+
+// ── Zone Config Fetch ───────────────────────────────────────────────────────
+
+async function loadZoneConfig() {
+  try {
+    const cfg = await apiFetch('/zone-config');
+    if (cfg.sports) SPORT_CONFIG = cfg.sports;
+    if (cfg.presets) ALLOC_PRESETS = cfg.presets;
+    console.log('[CONFIG] Zone config loaded:', Object.keys(ALLOC_PRESETS).length, 'presets');
+  } catch (e) {
+    console.warn('[CONFIG] Using fallback config:', e.message);
+  }
+}
+
+// ── Data Fetching ───────────────────────────────────────────────────────────
+
+async function fetchAll() {
+  try {
+    const [z, s, d, a] = await Promise.all([
+      apiFetch('/zones'),
+      apiFetch('/sessions/active'),
+      apiFetch('/devices'),
+      apiFetch('/alerts'),
+    ]);
+    zones = z.map(parseZoneAlloc);
+    sessions = s;
+    devices = d;
+    alerts = a;
+    setBackendStatus(true);
+    renderAll();
+  } catch (e) {
+    setBackendStatus(false);
+  }
+}
+
+function parseZoneAlloc(z) {
+  if (typeof z.allocation === 'string') {
+    try { z.allocation = JSON.parse(z.allocation); } catch { z.allocation = []; }
+  }
+  if (!Array.isArray(z.allocation)) z.allocation = [];
+  return z;
+}
+
+function setBackendStatus(online) {
+  backendOnline = online;
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + (online ? 'online' : 'offline');
+  txt.textContent = online ? 'BACKEND ONLINE' : 'BACKEND OFFLINE';
+  document.getElementById('statusTime').textContent = new Date().toLocaleTimeString('en-GB');
+}
+
+// ── WebSocket ───────────────────────────────────────────────────────────────
+
+function connectWS() {
+  if (ws && ws.readyState <= 1) return;
+  const wsEl = document.getElementById('wsStatus');
+  try {
+    ws = new WebSocket(WS_URL);
+    ws.onopen = () => {
+      console.log('[WS] Connected');
+      wsConnected = true;
+      wsEl.textContent = 'WS: LIVE';
+      wsEl.style.color = 'var(--green)';
+      setBackendStatus(true);
     };
-    wsConn.onmessage = e => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'init') {
-        zones = msg.zones || [];
-        ensureAllZones();
-        queue = msg.queue || [];
-        sessions = msg.sessions || [];
-        if (msg.devices) devices = msg.devices;
-      } else if (msg.type === 'occupancy') {
-        zones = msg.zones;
-        ensureAllZones();
-      } else if (msg.type === 'queue') {
-        queue = msg.data;
-      } else if (msg.type === 'sessions') {
-        sessions = msg.data;
-      } else if (msg.type === 'devices') {
-        devices = msg.state;
-        renderDevices();
-      } else if (msg.type === 'alert') {
-        alerts.unshift({...msg, ts: new Date().toISOString()});
-        alerts = alerts.slice(0,30);
-        renderAlerts();
-      } else if (msg.type === 'called') {
-        queue = msg.queue;
-        showCalledOverlay(msg.zone_id, msg.queue_num);
-      }
-      renderAll();
+    ws.onmessage = (evt) => {
+      try {
+        const msg = JSON.parse(evt.data);
+        handleWSMessage(msg);
+      } catch (e) { /* ignore parse errors */ }
     };
-    wsConn.onclose = () => {
-      setWsStatus(false);
+    ws.onclose = () => {
+      console.log('[WS] Disconnected, reconnecting in 3s...');
+      wsConnected = false;
+      wsEl.textContent = 'WS: OFF';
+      wsEl.style.color = 'var(--red)';
       setTimeout(connectWS, 3000);
     };
-    wsConn.onerror = () => wsConn.close();
-  } catch(e) {
-    setWsStatus(false);
+    ws.onerror = () => {
+      ws.close();
+    };
+  } catch (e) {
     setTimeout(connectWS, 3000);
   }
 }
 
-let wsConnected = false;
-function setWsStatus(ok) {
-  wsConnected = ok;
-  document.getElementById('ws-dot').style.background = ok ? '#22C55E' : '#EF4444';
-  document.getElementById('ws-dot').style.boxShadow = ok ? '0 0 6px #22C55E' : 'none';
-  document.getElementById('ws-label').textContent = ok ? 'Backend Online' : '重新連接中…';
-}
-
-// Fallback: poll backend every 5s if WebSocket is down
-setInterval(async () => {
-  if (wsConnected) return;
-  try {
-    const z = await api('GET','/zones');
-    zones = z; ensureAllZones();
-    const s = await api('GET','/sessions/active');
-    sessions = s;
-    const d = await api('GET','/devices');
-    devices = d;
-    renderAll();
-  } catch(e) { /* backend offline */ }
-}, 5000);
-
-function showCalledOverlay(zone, num) {
-  const el = document.getElementById('called-overlay');
-  document.getElementById('co-zone').textContent = zone;
-  document.getElementById('co-num').textContent = num;
-  el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 10000);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Render helpers
-// ═══════════════════════════════════════════════════════════════════════════
-// ─── Flexible multi-sport zone model ───
-// Zone A/B: 球場區 — can switch between 🏀 basketball (2 half-courts) or 🏐 volleyball (1 full court)
-// Zone C/D/E: 多功能區 — can switch between 🏸 badminton (×2) or 🏓 table tennis (×4) or 🎾 pickleball (×2)
-const ZONE_META = {
-  A: {label:'球場區 1', cap:20, modes:{
-    basketball:{tag:'🏀 籃球', courts:[{id:'A-BK1',name:'籃球半場 1',icon:'🏀',dur:45},{id:'A-BK2',name:'籃球半場 2',icon:'🏀',dur:45}]},
-    volleyball:{tag:'🏐 排球', courts:[{id:'A-VB1',name:'排球場',icon:'🏐',dur:45}]},
-  }},
-  B: {label:'球場區 2', cap:20, modes:{
-    basketball:{tag:'🏀 籃球', courts:[{id:'B-BK1',name:'籃球半場 1',icon:'🏀',dur:45},{id:'B-BK2',name:'籃球半場 2',icon:'🏀',dur:45}]},
-    volleyball:{tag:'🏐 排球', courts:[{id:'B-VB1',name:'排球場',icon:'🏐',dur:45}]},
-  }},
-  C: {label:'多功能區 1', cap:16, modes:{
-    badminton:  {tag:'🏸 羽毛球', courts:[{id:'C-BD1',name:'羽毛球場 1',icon:'🏸',dur:45},{id:'C-BD2',name:'羽毛球場 2',icon:'🏸',dur:45}]},
-    tabletennis:{tag:'🏓 乒乓球', courts:[{id:'C-TT1',name:'乒乓球台 1',icon:'🏓',dur:30},{id:'C-TT2',name:'乒乓球台 2',icon:'🏓',dur:30},{id:'C-TT3',name:'乒乓球台 3',icon:'🏓',dur:30},{id:'C-TT4',name:'乒乓球台 4',icon:'🏓',dur:30}]},
-    pickleball: {tag:'🎾 匹克球', courts:[{id:'C-PB1',name:'匹克球場 1',icon:'🎾',dur:30},{id:'C-PB2',name:'匹克球場 2',icon:'🎾',dur:30}]},
-  }},
-  D: {label:'多功能區 2', cap:16, modes:{
-    badminton:  {tag:'🏸 羽毛球', courts:[{id:'D-BD1',name:'羽毛球場 1',icon:'🏸',dur:45},{id:'D-BD2',name:'羽毛球場 2',icon:'🏸',dur:45}]},
-    tabletennis:{tag:'🏓 乒乓球', courts:[{id:'D-TT1',name:'乒乓球台 1',icon:'🏓',dur:30},{id:'D-TT2',name:'乒乓球台 2',icon:'🏓',dur:30},{id:'D-TT3',name:'乒乓球台 3',icon:'🏓',dur:30},{id:'D-TT4',name:'乒乓球台 4',icon:'🏓',dur:30}]},
-    pickleball: {tag:'🎾 匹克球', courts:[{id:'D-PB1',name:'匹克球場 1',icon:'🎾',dur:30},{id:'D-PB2',name:'匹克球場 2',icon:'🎾',dur:30}]},
-  }},
-  E: {label:'多功能區 3', cap:16, modes:{
-    badminton:  {tag:'🏸 羽毛球', courts:[{id:'E-BD1',name:'羽毛球場 1',icon:'🏸',dur:45},{id:'E-BD2',name:'羽毛球場 2',icon:'🏸',dur:45}]},
-    tabletennis:{tag:'🏓 乒乓球', courts:[{id:'E-TT1',name:'乒乓球台 1',icon:'🏓',dur:30},{id:'E-TT2',name:'乒乓球台 2',icon:'🏓',dur:30},{id:'E-TT3',name:'乒乓球台 3',icon:'🏓',dur:30},{id:'E-TT4',name:'乒乓球台 4',icon:'🏓',dur:30}]},
-    pickleball: {tag:'🎾 匹克球', courts:[{id:'E-PB1',name:'匹克球場 1',icon:'🎾',dur:30},{id:'E-PB2',name:'匹克球場 2',icon:'🎾',dur:30}]},
-  }},
-};
-
-// Current mode per zone (can be switched at runtime)
-let zoneMode = {A:'basketball', B:'volleyball', C:'badminton', D:'tabletennis', E:'pickleball'};
-
-// Helper: get current courts for a zone
-function getZoneCourts(zid) { return ZONE_META[zid].modes[zoneMode[zid]].courts; }
-function getZoneTag(zid)    { return ZONE_META[zid].modes[zoneMode[zid]].tag; }
-function getZoneDur(zid)    { const c = getZoneCourts(zid); return c.length ? c[0].dur : 45; }
-
-// Switch a zone's sport mode — clears bookings for old courts
-async function switchZoneMode(zid, newMode) {
-  if (zoneMode[zid] === newMode) return;
-  // Map frontend mode to backend sport name
-  const modeToSport = {
-    basketball:'籃球', volleyball:'排球',
-    badminton:'羽毛球', tabletennis:'乒乓球', pickleball:'匹克球'
-  };
-  const sport = modeToSport[newMode];
-  if (!sport) return;
-  try {
-    await api('POST', `/zones/${zid}/switch-sport`, {sport});
-    zoneMode[zid] = newMode;
-    renderAll();
-  } catch(e) {
-    alert(`切換失敗：${e.message}`);
+function handleWSMessage(msg) {
+  setBackendStatus(true);
+  switch (msg.type) {
+    case 'init':
+      zones = (msg.zones || []).map(parseZoneAlloc);
+      sessions = msg.sessions || [];
+      queue = msg.queue || [];
+      devices = msg.devices || {};
+      renderAll();
+      break;
+    case 'occupancy':
+      zones = (msg.zones || []).map(parseZoneAlloc);
+      renderZones();
+      renderKPIs();
+      renderZonePills();
+      renderDemoConsole();
+      renderDevices();
+      break;
+    case 'devices':
+      devices = msg.state || msg.devices || {};
+      renderDevices();
+      break;
+    case 'sessions':
+      sessions = msg.data || [];
+      renderSessions();
+      renderKPIs();
+      break;
+    case 'queue':
+      queue = msg.data || [];
+      renderQueue();
+      renderKPIs();
+      break;
+    case 'alert':
+      alerts.unshift({
+        severity: msg.severity,
+        message: msg.message,
+        ts: msg.time || new Date().toISOString(),
+      });
+      renderAlerts();
+      renderKPIs();
+      break;
+    case 'called':
+      queue = msg.queue || queue;
+      renderQueue();
+      break;
   }
 }
 
-// Compatibility shims so existing code keeps working
-const ZONE_CAP = {};
-Object.keys(ZONE_META).forEach(z => ZONE_CAP[z] = ZONE_META[z].cap);
+// ══════════════════════════════════════════════════════════════════════════════
+//  RENDERING
+// ══════════════════════════════════════════════════════════════════════════════
 
 function renderAll() {
-  syncCourtBookings();   // ← sync court bookings from backend sessions
-  renderDashboard();
+  renderKPIs();
   renderZonePills();
-  renderQueue();
+  renderZones();
+  renderDemoConsole();
   renderSessions();
-  renderSGCourtGrid();
-  renderDemoCtrl();
-  renderSCZonePeople();
-  renderDevices();       // ← also refresh devices on every update
+  renderQueue();
+  renderDevices();
+  renderAlerts();
 }
 
-function renderSCZonePeople() {
-  const el = document.getElementById('sc-zone-people');
-  if (!el) return;
-  el.innerHTML = Object.keys(ZONE_META).map(zid => {
-    const z = zones.find(z => z.id === zid);
-    const count = z ? (z.current_count||0) : 0;
-    const cap = (z && z.capacity) || ZONE_CAP[zid] || 30;
-    const pct = Math.round(count / Math.max(cap, 1) * 100);
-    const col = pctColor(pct);
-    return `<div style="background:#0A1120;border-radius:8px;padding:10px;text-align:center;border:1px solid #334155">
-      <div style="font-weight:800;font-size:13px;margin-bottom:4px">Zone ${zid}</div>
-      <div style="font-size:10px;color:#64748B;margin-bottom:6px">${ZONE_META[zid].label} · ${getZoneTag(zid)}</div>
-      <div style="font-size:28px;font-weight:900;color:${col}">${count}</div>
-      <div style="font-size:11px;color:#64748B">/ ${cap} 人</div>
-      <div class="pbar-wrap" style="margin-top:6px"><div class="pbar" style="width:${Math.min(pct,100)}%;background:${col}"></div></div>
-    </div>`;
-  }).join('');
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function allocUnitsUsed(alloc) {
+  if (!alloc || !alloc.length) return 0;
+  return alloc.reduce((sum, a) => {
+    const cfg = SPORT_CONFIG[a.sport];
+    return sum + (cfg ? (cfg.unit_cost || 1) * a.count : 0);
+  }, 0);
 }
 
-function renderDemoCtrl() {
-  const el = document.getElementById('demo-ctrl-grid');
-  if (!el) return;
-  el.style.gridTemplateColumns = '1fr';
-  el.innerHTML = Object.keys(ZONE_META).map(zid => {
-    const meta = ZONE_META[zid];
-    const courts = getZoneCourts(zid);
-    const curMode = zoneMode[zid];
-    const bookedCount = courts.filter(c => courtBookings[c.id]).length;
-    // Mode switch buttons
-    const modeButtons = Object.keys(meta.modes).map(m => {
-      const active = m === curMode;
-      return `<button onclick="switchZoneMode('${zid}','${m}')" style="
-        padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;
-        font-family:inherit;border:1px solid ${active?'#F9731660':'#33415560'};
-        background:${active?'rgba(249,115,22,.18)':'#0F172A'};
-        color:${active?'#F97316':'#94A3B8'};transition:all .15s">
-        ${meta.modes[m].tag}${active?' ✓':''}
-      </button>`;
-    }).join('');
-    return `
-    <div style="background:#0A1120;border-radius:8px;padding:10px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div>
-          <span style="font-weight:800;font-size:14px">Zone ${zid}</span>
-          <span style="font-size:11px;color:#64748B;margin-left:8px">${meta.label}</span>
-        </div>
-        <span style="font-size:11px;font-weight:700;
-          color:${bookedCount===courts.length?'#EF4444':bookedCount>0?'#F59E0B':'#22C55E'}">
-          ${courts.length-bookedCount}/${courts.length} 空閒
-        </span>
-      </div>
-      <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">${modeButtons}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${courts.map(c => {
-          const b = courtBookings[c.id];
-          return `<button onclick="demoCourtToggle('${c.id}')" style="
-            padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;
-            font-family:inherit;transition:all .15s;border:1px solid;
-            background:${b?'rgba(239,68,68,.15)':'rgba(34,197,94,.12)'};
-            color:${b?'#EF4444':'#22C55E'};
-            border-color:${b?'#EF444440':'#22C55E40'}">
-            ${c.icon} ${c.name} ${b?'● 已訂':'○ 空閒'}
-          </button>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }).join('');
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
-// Demo court toggle — book or unbook a court manually
-async function demoCourtToggle(cid) {
-  const b = courtBookings[cid];
-  // Find court + zone
-  let foundZid = null, foundCourt = null;
-  for (const zid of Object.keys(ZONE_META)) {
-    const c = getZoneCourts(zid).find(c => c.id === cid);
-    if (c) { foundZid = zid; foundCourt = c; break; }
-  }
-  if (!foundZid) return;
-  if (b) {
-    // Unbook
-    delete courtBookings[cid];
-    localZoneAdd(foundZid, -1);
-  } else {
-    // Book (as anonymous demo booking)
-    courtBookings[cid] = {booked:true, user_name:'Demo', user_id:'demo'};
-    localZoneAdd(foundZid, +1);
-  }
-  renderAll();
-}
-
-async function demoAdjust(zid, delta) {
-  let z = zones.find(z => z.id === zid);
-  const cap = (z && z.capacity) || ZONE_CAP[zid] || 30;
-  if (!z) { z = {id:zid, current_count:0, capacity:cap, status:'open'}; zones.push(z); }
-  z.current_count = Math.max(0, Math.min(cap, (z.current_count||0) + delta));
-  renderAll();
-  api('POST','/zones/occupancy',{zone_id:zid, count:z.current_count}).catch(()=>{});
-}
-
-// Update a zone's local count and push to backend (used by SmartGate on session entry)
-function localZoneAdd(zid, delta) {
-  let z = zones.find(z => z.id === zid);
-  const cap = (z && z.capacity) || ZONE_CAP[zid] || 30;
-  if (!z) { z = {id:zid, current_count:0, capacity:cap, status:'open'}; zones.push(z); }
-  z.current_count = Math.max(0, Math.min(cap, (z.current_count||0) + delta));
-  renderAll();
-  api('POST','/zones/occupancy',{zone_id:zid, count:z.current_count}).catch(()=>{});
-}
-
-function getCourtStats() {
-  let totalCourts = 0, totalFree = 0;
-  Object.keys(ZONE_META).forEach(zid => {
-    const courts = getZoneCourts(zid);
-    totalCourts += courts.length;
-    totalFree += courts.filter(c => !courtBookings[c.id]).length;
-  });
-  return {totalCourts, totalFree, totalBooked: totalCourts - totalFree};
-}
+// ── Zone Pills (top bar) ────────────────────────────────────────────────────
 
 function renderZonePills() {
-  const el = document.getElementById('zone-pills');
-  // Show free/total courts per zone
-  el.innerHTML = Object.keys(ZONE_META).map(zid => {
-    const courts = getZoneCourts(zid);
-    const free = courts.filter(c => !courtBookings[c.id]).length;
-    const col = free === 0 ? '#EF4444' : free < courts.length ? '#F59E0B' : '#22C55E';
-    return `<div class="zone-pill" style="color:${col}">Z${zid} ${free}/${courts.length}</div>`;
+  const el = document.getElementById('zonePills');
+  el.innerHTML = zones.map(z => {
+    const alloc = z.allocation || [];
+    const used = allocUnitsUsed(alloc);
+    const free = TOTAL_UNITS - used;
+    const cls = z.status === 'full' ? 'full' : z.status === 'busy' ? 'busy' : 'open';
+    return `<span class="zone-pill ${cls}">Z${esc(z.id)} ${free}/${TOTAL_UNITS}</span>`;
   }).join('');
 }
 
-function renderDashboard() {
-  // KPI: court availability
-  const cs = getCourtStats();
-  const freeCol = cs.totalFree === 0 ? '#EF4444' : cs.totalFree < cs.totalCourts/2 ? '#F59E0B' : '#22C55E';
-  document.getElementById('kpi-total').textContent = cs.totalFree;
-  document.getElementById('kpi-total').style.color = freeCol;
-  document.getElementById('kpi-total-sub').textContent = `共 ${cs.totalCourts} 場 · ${cs.totalBooked} 已訂`;
-  document.getElementById('kpi-queue').textContent = queue.filter(q=>q.status==='waiting').length;
-  document.getElementById('kpi-sess').textContent  = sessions.length;
-  document.getElementById('kpi-alerts').textContent = alerts.filter(a=>!a.resolved).length;
+// ── KPIs ────────────────────────────────────────────────────────────────────
 
-  const gc = document.getElementById('zone-cards');
-  gc.innerHTML = Object.keys(ZONE_META).map(zid => {
-    const meta = ZONE_META[zid];
-    const courts = getZoneCourts(zid);
-    const free = courts.filter(c => !courtBookings[c.id]).length;
-    const freePct = Math.round(free / Math.max(courts.length, 1) * 100);
-    const col  = free === 0 ? '#EF4444' : free < courts.length ? '#F59E0B' : '#22C55E';
-    const dur  = getZoneDur(zid);
-    const wait = queue.filter(q=>q.zone_id===zid&&q.status==='waiting').length;
-    const act  = sessions.filter(s=>s.zone_id===zid).length;
+function renderKPIs() {
+  let totalCourts = 0, usedCourts = 0;
+  zones.forEach(z => {
+    totalCourts += z.courts || 0;
+    const zoneSessions = sessions.filter(s => s.zone_id === z.id);
+    usedCourts += zoneSessions.length;
+  });
+  animateCounter('kpiFreeCourts', totalCourts - usedCourts);
+
+  const queueCount = (queue || []).filter(q => q.status === 'waiting').length;
+  animateCounter('kpiQueue', queueCount);
+  animateCounter('kpiSessions', sessions.length);
+  animateCounter('kpiAlerts', alerts.length);
+}
+
+function animateCounter(id, target) {
+  const el = document.getElementById(id);
+  const current = parseInt(el.textContent) || 0;
+  if (current === target) return;
+  // Quick counter animation
+  const diff = target - current;
+  const steps = Math.min(Math.abs(diff), 10);
+  const stepSize = diff / steps;
+  let step = 0;
+  const iv = setInterval(() => {
+    step++;
+    if (step >= steps) {
+      el.textContent = target;
+      clearInterval(iv);
+    } else {
+      el.textContent = Math.round(current + stepSize * step);
+    }
+  }, 40);
+}
+
+// ── Zone Overview Grid ──────────────────────────────────────────────────────
+
+function renderZones() {
+  const el = document.getElementById('zoneGrid');
+  el.innerHTML = zones.map(z => {
+    const alloc = z.allocation || [];
+    const used = allocUnitsUsed(alloc);
+    const pct = Math.min((used / TOTAL_UNITS) * 100, 100);
+    const barColor = pct >= 100 ? 'var(--red)' : pct >= 75 ? 'var(--amber)' : 'var(--green)';
+    const barShadow = pct >= 100 ? '0 0 8px rgba(255,51,102,0.4)' : pct >= 75 ? '0 0 8px rgba(255,170,0,0.3)' : '0 0 8px rgba(0,255,136,0.3)';
+
+    // Allocation tags
+    const allocHTML = alloc.filter(a => a.count > 0).map(a => {
+      const cfg = SPORT_CONFIG[a.sport] || {};
+      return `<span class="alloc-tag">${cfg.icon || ''} ${esc(a.sport)} &times;${a.count}</span>`;
+    }).join('') || '<span style="color:var(--text-muted);font-size:10px;font-family:var(--font-mono);">UNCONFIGURED</span>';
+
+    // Zone sessions / queue
+    const zoneSessions = sessions.filter(s => s.zone_id === z.id).length;
+    const zoneQueue = (queue || []).filter(q => q.zone_id === z.id && q.status === 'waiting').length;
+
+    const statusCls = z.status === 'full' ? 'full' : z.status === 'busy' ? 'busy' : 'open';
+    const statusLabel = z.status === 'full' ? 'FULL' : z.status === 'busy' ? 'BUSY' : 'OPEN';
+
+    // Primary sport icon for background
+    const primaryIcon = alloc.length > 0 && SPORT_CONFIG[alloc[0].sport]
+      ? SPORT_CONFIG[alloc[0].sport].icon : '';
+
     return `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div>
-          <span style="font-weight:800;font-size:15px">Zone ${zid}</span>
-          <span style="color:#64748B;font-size:12px;margin-left:8px">${meta.label} · ${getZoneTag(zid)}</span>
+      <div class="zone-card">
+        <span class="zone-bg-icon">${primaryIcon}</span>
+        <div class="zone-header">
+          <div>
+            <span class="zone-id">Z${esc(z.id)}</span>
+            <span class="zone-name">${esc(z.name_zh)}</span>
+          </div>
+          <span class="zone-status ${statusCls}">${statusLabel}</span>
         </div>
-        <span class="badge badge-green">open</span>
+        <div class="zone-alloc">${allocHTML}</div>
+        <div class="unit-bar-wrap">
+          <div class="unit-bar" style="width:${pct}%;background:${barColor};box-shadow:${barShadow};"></div>
+        </div>
+        <div class="zone-stats">
+          <span style="color:var(--text-muted);">UNITS ${used}/${TOTAL_UNITS}</span>
+          <span style="color:${zoneSessions >= (z.courts||0) ? 'var(--red)' : 'var(--green)'};">COURTS ${zoneSessions}/${z.courts || 0}</span>
+          <span style="color:${zoneQueue > 0 ? 'var(--amber)' : 'var(--text-muted)'};">Q:${zoneQueue}</span>
+        </div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
-        <span style="color:${col};font-weight:700">${free} / ${courts.length} 場空閒</span>
-        <span style="color:#64748B">⏱ ${dur!=null?dur+'分':'無限'}</span>
-      </div>
-      <div class="pbar-wrap"><div class="pbar" style="width:${Math.min(freePct,100)}%;background:${col}"></div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
-        ${courts.map(c => {
-          const b = courtBookings[c.id];
-          return `<span style="padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;
-            background:${b?'rgba(239,68,68,.12)':'rgba(34,197,94,.12)'};
-            color:${b?'#EF4444':'#22C55E'};
-            border:1px solid ${b?'#EF444425':'#22C55E25'}"
-            title="${c.name}${b?' — 已預訂':''}">${c.icon} ${c.name.replace(/場$|台$/,'')} ${b?'●':'○'}</span>`;
-        }).join('')}
-      </div>
-      <div style="display:flex;gap:14px;font-size:12px;color:#64748B;margin-top:6px">
-        <span>排隊 ${wait}</span><span>場次 ${act}</span>
-      </div>
-    </div>`;
+    `;
   }).join('');
 }
 
-function renderQueue() {
-  const el = document.getElementById('queue-list');
-  const items = queue.filter(q=>q.status==='waiting'||q.status==='called');
-  if (!items.length) { el.innerHTML = '<span style="color:#64748B;font-size:13px">排隊列表空</span>'; return; }
-  el.innerHTML = items.map(q => `
-    <div class="q-item">
-      <div class="q-num">${q.queue_num}</div>
-      <div style="flex:1">
-        <div style="font-weight:600;font-size:14px">${q.name||'???'}</div>
-        <div style="color:#64748B;font-size:12px">Zone ${q.zone_id}</div>
+// ── Demo Console ────────────────────────────────────────────────────────────
+
+function renderDemoConsole() {
+  const el = document.getElementById('demoGrid');
+  el.innerHTML = zones.map(z => {
+    const alloc = z.allocation || [];
+    const courts = z.courts || 0;
+
+    // Preset buttons
+    const presets = Object.keys(ALLOC_PRESETS).map(name =>
+      `<button class="btn btn-xs btn-ghost" onclick="window.demoApplyPreset('${esc(z.id)}','${esc(name)}')">${esc(name)}</button>`
+    ).join('');
+
+    // Court toggle buttons
+    const courtBtns = [];
+    let courtNum = 1;
+    for (const a of alloc) {
+      const cfg = SPORT_CONFIG[a.sport] || {};
+      for (let i = 0; i < a.count; i++) {
+        const cn = courtNum++;
+        const hasSession = sessions.some(s => s.zone_id === z.id && s.court_num === cn);
+        const cls = hasSession ? 'btn-red' : 'btn-green';
+        const label = hasSession ? `${cfg.icon || ''} #${cn} OCC` : `${cfg.icon || ''} #${cn} FREE`;
+        courtBtns.push(`<button class="btn btn-xs ${cls}" onclick="window.demoCourtToggle('${esc(z.id)}',${cn},${hasSession})">${label}</button>`);
+      }
+    }
+
+    return `
+      <div class="demo-zone">
+        <div class="demo-zone-header">
+          <span>Z${esc(z.id)} ${esc(z.name_zh)}</span>
+          <span style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);">${courts} courts</span>
+        </div>
+        <div class="preset-row">${presets}</div>
+        <div class="court-row">${courtBtns.join('')}</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-xs btn-accent" onclick="window.demoBookAll('${esc(z.id)}')">全訂 Book All</button>
+          <button class="btn btn-xs btn-muted" onclick="window.demoResetZone('${esc(z.id)}')">重置 Reset</button>
+        </div>
       </div>
-      <span class="badge ${q.status==='called'?'badge-yellow':'badge-gray'}">${q.status==='called'?'已叫號':'等待中'}</span>
-    </div>`).join('');
+    `;
+  }).join('');
 }
+
+// ── Sessions List ───────────────────────────────────────────────────────────
 
 function renderSessions() {
-  const el = document.getElementById('sess-list');
-  if (!sessions.length) { el.innerHTML = '<span style="color:#64748B;font-size:13px">暫無場次</span>'; return; }
-  const now = Date.now();
-  el.innerHTML = sessions.map(s => {
-    const rem  = s.expires_at ? Math.max(0, Math.round((new Date(s.expires_at)-now)/1000)) : null;
-    const col  = rem != null ? (rem<300?'#EF4444':rem<600?'#F59E0B':'#22C55E') : '#3B82F6';
-    return `
-    <div class="session-card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <span style="font-weight:700">Zone ${s.zone_id}</span>
-          <span style="color:#64748B;font-size:12px;margin-left:8px">${s.user_name||s.user_id}</span>
-        </div>
-        <div class="session-timer" style="color:${col};font-size:20px">${fmtSecs(rem)}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderDevices() {
-  const el = document.getElementById('dev-grid');
-  if (!el) return;
-  const zids = Object.keys(devices);
-  if (!zids.length) { el.innerHTML = '<div class="card"><span style="color:#64748B">暫無設備數據</span></div>'; return; }
-  el.innerHTML = zids.map(zid => {
-    const d = devices[zid];
-    const stateLabel = (key, val) => {
-      const labels = {
-        light: {on:'開啟',off:'關閉',flash:'閃爍警告'},
-        hoop: {deployed:'已部署',retracted:'已收起','n/a':'無'},
-        gate: {open:'開啟',locked:'關閉'}
-      };
-      return (labels[key]||{})[val] || val;
-    };
-    const isOn = (key, val) => ({light:val==='on'||val==='flash', hoop:val==='deployed', gate:val==='open'}[key]);
-    const devs = [
-      {icon:'💡', name:'燈光', key:'light',  state:d.light,  on:isOn('light',d.light),
-       cmds:[{label:'開',action:'on'},{label:'關',action:'off'},{label:'閃爍',action:'flash'}]},
-      {icon:'🏀', name:'器材', key:'hoop',   state:d.hoop,   on:isOn('hoop',d.hoop),
-       cmds: d.hoop==='n/a' ? [] : [{label:'部署',action:'deploy'},{label:'收起',action:'retract'}]},
-      {icon:'🚪', name:'閘門', key:'gate',   state:d.gate,   on:isOn('gate',d.gate),
-       cmds:[{label:'開',action:'open'},{label:'鎖',action:'lock'}]},
-    ];
-    return `
-    <div class="card">
-      <div class="card-title">Zone ${zid} — ${ZONE_META[zid]?ZONE_META[zid].label:''}</div>
-      ${devs.map(dv => `
-        <div class="dev-row" style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1E293B">
-          <span style="min-width:80px">${dv.icon} ${dv.name}</span>
-          <span class="badge ${dv.on?'badge-green':dv.state==='flash'?'badge-yellow':'badge-gray'}" style="min-width:60px;text-align:center">${stateLabel(dv.key,dv.state)}</span>
-          <div style="display:flex;gap:4px;margin-left:8px">
-            ${dv.cmds.map(cmd => `<button onclick="devCmd('${zid}','${dv.key}','${cmd.action}')" style="
-              padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;
-              border:1px solid #334155;background:#0F172A;color:#E2E8F0;font-family:inherit;
-              transition:all .15s" onmouseover="this.style.background='#1E293B'" onmouseout="this.style.background='#0F172A'"
-            >${cmd.label}</button>`).join('')}
-          </div>
-        </div>`).join('')}
-    </div>`;
-  }).join('');
-}
-
-async function devCmd(zoneId, device, action) {
-  try {
-    await api('POST', `/devices/${zoneId}/${device}/command`, {action});
-  } catch(e) {
-    console.error('Device command failed:', e);
-  }
-}
-
-function renderAlerts() {
-  const counts = {critical:0, warning:0, info:0};
-  alerts.forEach(a => { if (counts[a.severity]!==undefined) counts[a.severity]++; });
-  document.getElementById('alt-critical').textContent = counts.critical;
-  document.getElementById('alt-warning').textContent  = counts.warning;
-  document.getElementById('alt-info').textContent     = counts.info;
-  document.getElementById('alt-total').textContent    = alerts.length;
-
-  const el = document.getElementById('alert-feed');
-  if (!alerts.length) { el.innerHTML = '<span style="color:#64748B;font-size:13px">暫無警報</span>'; return; }
-  el.innerHTML = alerts.slice(0,15).map(a => `
-    <div class="alert-item alert-${a.severity||'info'}">
-      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-        <span style="font-weight:700;font-size:13px">${a.message||a.alert_type}</span>
-        <span style="font-size:11px;color:#64748B">${timeAgo(a.ts)}</span>
-      </div>
-      <div style="font-size:12px;color:#64748B">Zone ${a.zone_id||'—'} · ${a.severity||'info'}</div>
-    </div>`).join('');
-}
-
-// ── WhatsApp demo trigger ───────────────────────────────────────────────────
-async function demoWhatsApp() {
-  const zone = document.getElementById('wa-zone').value;
-  const user = document.getElementById('wa-user').value || 'Demo User';
-  const mins = parseInt(document.getElementById('wa-mins').value) || 5;
-  const el = document.getElementById('wa-result');
-  el.innerHTML = '<span style="color:#F59E0B">發送中…</span>';
-  try {
-    const r = await api('POST','/alerts/test-whatsapp',{zone_id:zone, user_name:user, minutes:mins});
-    el.innerHTML = `<span style="color:#22C55E">✅ ${r.message || 'WhatsApp 訊息已發送'}</span>`;
-  } catch(e) {
-    el.innerHTML = `<span style="color:#EF4444">❌ 發送失敗：${e.message}</span>`;
-  }
-}
-
-function renderSGCourtGrid() {
-  const el = document.getElementById('sg-court-grid');
-  if (!el) return;
-  let html = '';
-  Object.keys(ZONE_META).forEach(zid => {
-    const meta = ZONE_META[zid];
-    const courts = getZoneCourts(zid);
-    const bookedCount = courts.filter(c => courtBookings[c.id]).length;
-    const totalCount  = courts.length;
-    html += `
-    <div style="margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px">
-          Zone ${zid} — ${meta.label} · ${getZoneTag(zid)}
-        </div>
-        <div style="font-size:11px;color:${bookedCount===totalCount?'#EF4444':bookedCount>0?'#F59E0B':'#22C55E'}">
-          ${totalCount-bookedCount}/${totalCount} 空閒
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-        ${courts.map(c => {
-          const b   = courtBookings[c.id];
-          const sel = sgCourt && sgCourt.id === c.id;
-          return `<button onclick="sgSelectCourt('${c.id}')" style="
-            padding:10px 6px;border-radius:8px;text-align:center;
-            cursor:${b?'not-allowed':'pointer'};
-            border:2px solid ${sel?'#F97316':b?'#EF444440':'#334155'};
-            background:${sel?'rgba(249,115,22,.18)':b?'rgba(239,68,68,.07)':'#0F172A'};
-            color:${b?'#475569':'#F1F5F9'};font-family:inherit;
-            transition:all .15s;${b?'opacity:.55':''}">
-            <div style="font-size:22px;margin-bottom:3px">${c.icon}</div>
-            <div style="font-size:11px;font-weight:700;margin-bottom:3px;line-height:1.2">${c.name}</div>
-            <div style="font-size:10px;font-weight:700;color:${b?'#EF4444':'#22C55E'}">${b?'● 已訂':'○ 空閒'}</div>
-            <div style="font-size:10px;color:#64748B">⏱${c.dur!=null?c.dur+'分':'無限'}</div>
-            ${b?`<div style="font-size:9px;color:#64748B;margin-top:2px">${b.user_name}</div>`:''}
-            ${sel?'<div style="font-size:10px;color:#F97316;font-weight:700;margin-top:3px">✓ 已選</div>':''}
-          </button>`;
-        }).join('')}
-      </div>
-    </div>`;
-  });
-  el.innerHTML = html;
-}
-
-function sgSelectCourt(cid) {
-  if (courtBookings[cid]) return; // already booked, ignore
-  for (const zid of Object.keys(ZONE_META)) {
-    const c = getZoneCourts(zid).find(c => c.id === cid);
-    if (c) {
-      sgCourt = c;
-      sgZone  = zid;
-      renderSGCourtGrid();
-      return;
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Tab navigation
-// ═══════════════════════════════════════════════════════════════════════════
-const TAB_TITLES = {
-  dashboard: ['主控大廳','所有子系統狀態總覽 — WebSocket 實時數據'],
-  smartgate: ['SmartGate','人臉識別登記 → 排隊 → Session 完整流程'],
-  smartcount:['SmartCount','YOLOv8n 即時人數偵測 → 推送至後端'],
-  control:   ['SmartControl','IoT 設備狀態（燈光 / 器材 / 閘門）'],
-  alerts:    ['AlertEngine','Telegram + WhatsApp + Twilio 警報系統記錄'],
-};
-function showTab(id) {
-  ['dashboard','smartgate','smartcount','control','alerts'].forEach(t => {
-    document.getElementById('tab-'+t).style.display = t===id ? '' : 'none';
-    document.getElementById('nav-'+t).classList.toggle('active', t===id);
-  });
-  const [title, sub] = TAB_TITLES[id] || ['',''];
-  document.getElementById('tb-title').textContent = title;
-  document.getElementById('tb-sub').textContent   = sub;
-  // Stop SC detect when leaving tab
-  if (id !== 'smartcount') stopSCDetect();
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ── SMARTGATE ──────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════
-let sgMode = 'face'; // 'face' | 'hkid'
-
-function sgSetMode(mode) {
-  sgMode = mode;
-  document.getElementById('sg-mode-face').className = 'mode-btn' + (mode==='face'?' active':'');
-  document.getElementById('sg-mode-hkid').className = 'mode-btn' + (mode==='hkid'?' active':'');
-  document.getElementById('sg-panel-face').style.display = mode==='face' ? '' : 'none';
-  document.getElementById('sg-panel-hkid').style.display = mode==='hkid' ? '' : 'none';
-  document.getElementById('sg-scan-err').style.display = 'none';
-}
-
-async function doHKIDLookup() {
-  const raw = document.getElementById('sg-hkid-inp').value.trim().toUpperCase();
-  if (!raw) { showErr('sg-scan-err','請輸入身份證號碼'); return; }
-  // Basic HKID format: 1-2 letters + 6 digits + (checkdigit)
-  const clean = raw.replace(/\s/g,'');
-  if (!/^[A-Z]{1,2}\d{6}\(\d\)$/.test(clean)) {
-    showErr('sg-scan-err','格式不正確，請輸入例如：A123456(7) 或 AB123456(7)');
+  const el = document.getElementById('sessionList');
+  if (!sessions.length) {
+    el.innerHTML = '<div class="empty-state">NO ACTIVE SESSIONS</div>';
     return;
   }
-  // Generate face_id from HKID (strip brackets for storage)
-  sgFaceId = 'HKID-' + clean.replace(/[()]/g,'');
+  el.innerHTML = sessions.map(s => {
+    const remaining = s.remaining_seconds || 0;
+    const min = Math.floor(remaining / 60);
+    const sec = remaining % 60;
+    const timeStr = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    const statusColor = s.status === 'active' ? 'var(--green)' :
+                        s.status === 'warning' ? 'var(--amber)' :
+                        'var(--red)';
+    return `
+      <div class="list-item">
+        <div>
+          <span style="color:var(--accent);font-weight:600;">Z${esc(s.zone_id)}</span>
+          <span style="color:var(--text-muted);margin:0 4px;">#${s.court_num || 1}</span>
+          <span>${esc(s.name || s.user_id || '--')}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="color:${statusColor};font-weight:700;font-family:var(--font-head);font-size:12px;letter-spacing:0.04em;">${timeStr}</span>
+          <span style="font-size:9px;color:${statusColor};text-transform:uppercase;letter-spacing:0.04em;">${esc(s.status)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
 
-  const btn = document.getElementById('sg-btn-hkid');
-  btn.disabled = true; btn.textContent = '查找中…';
+// ── Queue List ──────────────────────────────────────────────────────────────
 
-  try {
-    // Try to find existing user by HKID face_id
-    const u = await api('GET', `/users/by-face/${sgFaceId}`);
-    sgUserId   = u.id;
-    sgUserName = u.name;
-    document.getElementById('sg-welcome').textContent = `👋 歡迎回來，${sgUserName}！請選擇區域`;
-    renderSGCourtGrid();
-    sgGoStep(3);
-  } catch(e) {
-    // Not found → go to register
-    document.getElementById('sg-face-id-display').textContent = sgFaceId;
-    document.getElementById('sg-hkid-badge-num').textContent = clean;
-    document.getElementById('sg-hkid-badge').style.display = '';
-    document.getElementById('sg-face-preview-wrap').style.display = 'none';
-    setInfo('sg-reg-info',`🪪 新用戶（${clean}），請填寫資料完成登記。`, 'orange');
-    sgGoStep(2);
+function renderQueue() {
+  const el = document.getElementById('queueList');
+  const waiting = (queue || []).filter(q => q.status === 'waiting' || q.status === 'called');
+  if (!waiting.length) {
+    el.innerHTML = '<div class="empty-state">NO QUEUE ENTRIES</div>';
+    return;
   }
-  btn.disabled = false; btn.textContent = '🔍 查找 / 登記（以 HKID 作為識別碼）';
+  el.innerHTML = waiting.map(q => {
+    const statusColor = q.status === 'called' ? 'var(--accent)' : 'var(--text-muted)';
+    return `
+      <div class="list-item">
+        <div>
+          <span style="color:var(--accent);font-weight:600;">Z${esc(q.zone_id)}</span>
+          <span style="margin:0 4px;color:var(--amber);">#${q.queue_num}</span>
+          <span>${esc(q.name || '--')}</span>
+        </div>
+        <span style="color:${statusColor};text-transform:uppercase;font-size:9px;font-weight:600;letter-spacing:0.04em;">${esc(q.status)}</span>
+      </div>
+    `;
+  }).join('');
 }
 
-function sgGoStep(n) {
-  for (let i=1;i<=4;i++) {
-    const c = document.getElementById(`sg-s${i}`);
-    if (c) c.style.display = i===n ? '' : 'none';
-    const s = document.getElementById(`sg-step-${i}`);
-    if (s) {
-      s.className = 'step' + (i===n?' active':i<n?' done':'');
-    }
-  }
-  // Clear errors
-  ['sg-scan-err','sg-reg-err','sg-zone-err'].forEach(id => {
-    const e = document.getElementById(id); if (e) e.style.display='none';
-  });
-}
+// ── Devices ─────────────────────────────────────────────────────────────────
 
-async function startSGCamera() {
-  try {
-    sgCamStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:false});
-    const vid = document.getElementById('sg-video');
-    vid.srcObject = sgCamStream;
-    document.getElementById('sg-cam-status').textContent = '攝像頭就緒';
-    document.getElementById('sg-btn-scan').disabled = false;
-    document.getElementById('sg-btn-cam').disabled  = true;
-    // Start face detection preview loop
-    startSGPreview();
-  } catch(e) {
-    showErr('sg-scan-err', '無法開啟攝像頭：' + e.message);
-  }
-}
+const DEVICE_LABELS = {
+  light: { icon: '💡', zh: '燈光', actions: ['on','off','flash'] },
+  hoop:  { icon: '🏀', zh: '籃框', actions: ['deploy','retract'] },
+  net:   { icon: '🏸', zh: '球網', actions: ['setup','remove'] },
+  table: { icon: '🏓', zh: '球台', actions: ['setup','fold'] },
+  gate:  { icon: '🚪', zh: '閘門', actions: ['open','lock'] },
+};
 
-let sgPreviewIv = null;
-function startSGPreview() {
-  const vid = document.getElementById('sg-video');
-  const cvs = document.getElementById('sg-canvas');
-  cvs.width  = vid.videoWidth  || 640;
-  cvs.height = vid.videoHeight || 480;
-  // light preview every 2s (just show "ready" state, not full inference)
-}
+function renderDevices() {
+  const el = document.getElementById('deviceGrid');
+  el.innerHTML = ZONE_IDS.map(zid => {
+    const zoneDevices = devices[zid] || {};
+    const zone = zones.find(z => z.id === zid);
 
-async function doFaceScan() {
-  const vid = document.getElementById('sg-video');
-  if (!vid.srcObject) { showErr('sg-scan-err','請先開啟攝像頭'); return; }
-
-  const btn = document.getElementById('sg-btn-scan');
-  btn.disabled = true;
-  btn.textContent = '🔍 掃描中…';
-  setInfo('sg-scan-info', '正在呼叫 /smartgate/scan（face_recognition）…', 'orange');
-
-  try {
-    sgCapturedB64 = captureFrame(vid);
-    const result = await api('POST', '/smartgate/scan', {image: sgCapturedB64});
-
-    // Draw result on canvas
-    drawSGResult(result);
-
-    if (!result.ok && result.error) {
-      showErr('sg-scan-err', result.error);
-      btn.disabled = false; btn.textContent = '🔍 掃描人臉（呼叫 /smartgate/scan）';
-      return;
-    }
-
-    if (!result.detected) {
-      setInfo('sg-scan-info', '⚠️ ' + (result.message||'未偵測到人臉'), 'orange');
-      showErr('sg-scan-err', result.message || '未偵測到人臉，請調整位置再試');
-      btn.disabled = false; btn.textContent = '🔍 重新掃描';
-      return;
-    }
-
-    sgFaceId = result.face_id;
-
-    if (result.matched) {
-      // Existing user — look up and go to zone select
-      setInfo('sg-scan-info', `✅ 識別成功！Face ID: ${sgFaceId}`, 'green');
-      try {
-        const u = await api('GET', `/users/by-face/${sgFaceId}`);
-        sgUserId   = u.id;
-        sgUserName = u.name;
-        document.getElementById('sg-welcome').textContent = `👋 歡迎回來，${sgUserName}！請選擇區域`;
-        renderSGCourtGrid();
-        sgGoStep(3);
-      } catch {
-        // Face matched but no backend user record — treat as new
-        goToRegister(result);
+    const rows = Object.entries(DEVICE_LABELS).map(([dev, info]) => {
+      const state = zoneDevices[dev];
+      if (state === 'n/a' || state === undefined) {
+        if (dev !== 'light' && dev !== 'gate') return '';
+        if (state === undefined) return '';
       }
-    } else {
-      goToRegister(result);
-    }
-  } catch(e) {
-    showErr('sg-scan-err', 'API 錯誤：' + e.message);
-    setInfo('sg-scan-info', '❌ 掃描失敗，請確認後端運行中', 'red');
+
+      const stateClass = state === 'n/a' ? 'na' : state;
+      const stateLabel = state === 'n/a' ? 'N/A' : state.toUpperCase();
+
+      const btns = state !== 'n/a' ? info.actions.map(a =>
+        `<button class="btn btn-xs btn-ghost" onclick="deviceCmd('${zid}','${dev}','${a}')">${a}</button>`
+      ).join('') : '';
+
+      return `
+        <div class="device-row">
+          <div class="device-label">${info.icon} ${info.zh}</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="device-status ${stateClass}">${stateLabel}</span>
+            <div class="device-btns">${btns}</div>
+          </div>
+        </div>
+      `;
+    }).filter(Boolean).join('');
+
+    return `
+      <div class="device-zone">
+        <div class="device-zone-title">Z${zid} ${zone ? esc(zone.name_zh) : ''}</div>
+        ${rows || '<div class="empty-state" style="padding:8px;">NO DEVICES</div>'}
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Alerts ──────────────────────────────────────────────────────────────────
+
+function renderAlerts() {
+  const crit = alerts.filter(a => a.severity === 'critical').length;
+  const warn = alerts.filter(a => a.severity === 'warning').length;
+  const info = alerts.filter(a => a.severity === 'info' || (!a.severity)).length;
+  animateCounter('alertCrit', crit);
+  animateCounter('alertWarn', warn);
+  animateCounter('alertInfo', info);
+
+  const el = document.getElementById('alertLog');
+  if (!alerts.length) {
+    el.innerHTML = '<div class="empty-state">NO ALERTS</div>';
+    return;
   }
-  btn.disabled = false; btn.textContent = '🔍 掃描人臉（呼叫 /smartgate/scan）';
+  el.innerHTML = alerts.slice(0, 50).map(a => {
+    const sev = a.severity || 'info';
+    const ts = a.ts ? new Date(a.ts).toLocaleTimeString('en-GB') : '--';
+    const sevColor = sev === 'critical' ? 'var(--red)' : sev === 'warning' ? 'var(--amber)' : 'var(--accent)';
+    return `
+      <div class="alert-item ${sev}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-family:var(--font-head);font-weight:600;font-size:9px;text-transform:uppercase;color:${sevColor};letter-spacing:0.06em;">${sev}</span>
+          <span class="alert-time">${ts}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text);">${esc(a.message || '')}</div>
+      </div>
+    `;
+  }).join('');
 }
 
-function goToRegister(scanResult) {
-  document.getElementById('sg-face-id-display').textContent = sgFaceId;
-  setInfo('sg-reg-info', `🆕 新用戶人臉（Face ID: ${sgFaceId}）— 請填寫資料完成登記`, 'orange');
-  // Show captured face photo
-  if (sgCapturedB64) {
-    const img = document.getElementById('sg-face-preview');
-    img.src = sgCapturedB64;
-    document.getElementById('sg-face-preview-wrap').style.display = '';
-  }
-  document.getElementById('sg-hkid-badge').style.display = 'none';
-  sgGoStep(2);
-}
+// ══════════════════════════════════════════════════════════════════════════════
+//  DEMO CONTROLS (on window for onclick access)
+// ══════════════════════════════════════════════════════════════════════════════
 
-function drawSGResult(result) {
-  const vid = document.getElementById('sg-video');
-  const cvs = document.getElementById('sg-canvas');
-  cvs.width  = vid.videoWidth  || 640;
-  cvs.height = vid.videoHeight || 480;
-  const ctx  = cvs.getContext('2d');
-  ctx.clearRect(0, 0, cvs.width, cvs.height);
-  if (!result.location) return;
-  const {top,right,bottom,left} = result.location;
-  const sx = cvs.width  / (vid.videoWidth||640);
-  const sy = cvs.height / (vid.videoHeight||480);
-  const x = left*sx, y = top*sy, w = (right-left)*sx, h = (bottom-top)*sy;
-  ctx.strokeStyle = result.matched ? '#22C55E' : '#3B82F6';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(x, y, w, h);
-  ctx.fillStyle = result.matched ? '#22C55E' : '#3B82F6';
-  ctx.fillRect(x, y+h-28, w, 28);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 14px Microsoft JhengHei,sans-serif';
-  ctx.fillText(result.matched ? '已識別 ✓' : '新用戶', x+6, y+h-10);
-}
-
-async function doRegister() {
-  const name  = document.getElementById('sg-name').value.trim();
-  const phone = document.getElementById('sg-phone').value.replace(/\D/g,'');
-  if (!name)           { showErr('sg-reg-err','請填寫姓名'); return; }
-  if (!/^\d{8}$/.test(phone)) { showErr('sg-reg-err','電話號碼必須為 8 位數字（如：91234567）'); return; }
-
-  const btn = document.getElementById('sg-btn-reg');
-  btn.disabled = true; btn.textContent = '登記中…';
-
+window.demoApplyPreset = async function(zid, presetName) {
+  const alloc = ALLOC_PRESETS[presetName];
+  if (!alloc) return;
   try {
-    // Register user
-    const r = await api('POST','/users/register',{name,phone,face_id:sgFaceId});
-    sgUserId   = r.user_id;
-    sgUserName = name;
-
-    // Save face encoding (only in face mode)
-    if (sgMode === 'face' && sgCapturedB64) {
-      await api('POST','/smartgate/save_face',{face_id:sgFaceId, image:sgCapturedB64});
-    }
-
-    document.getElementById('sg-welcome').textContent = `👋 歡迎，${sgUserName}！請選擇使用區域`;
-    renderAll();          // ← refresh all pages after registration
-    sgGoStep(3);
-  } catch(e) {
-    showErr('sg-reg-err', '登記失敗：' + e.message);
-  }
-  btn.disabled = false; btn.textContent = '📋 提交登記（/users/register + /smartgate/save_face）';
-}
-
-// sgSelectZone replaced by sgSelectCourt above
-
-async function doJoinQueue() {
-  if (!sgCourt) { showErr('sg-zone-err','請先選擇場地（點擊場地卡片）'); return; }
-  if (!sgZone)  { showErr('sg-zone-err','區域資料遺失，請重新選擇'); return; }
-  if (!sgUserId){ showErr('sg-zone-err','用戶資料遺失，請重新掃描'); return; }
-
-  const btn = document.getElementById('sg-btn-join');
-  btn.disabled = true; btn.textContent = '處理中…';
-
-  try {
-    const qr = await api('POST','/queue/join',{user_id:sgUserId, zone_id:sgZone, court_id:sgCourt?.id});
-
-    if (qr.walk_in) {
-      // Direct walk-in → enter session
-      try {
-        const sr = await api('POST','/session/enter',{face_id:sgFaceId, zone_id:sgZone});
-        sgSession = sr;
-        startSGTimer();
-        showSGSession(sr);
-        // Session created → backend broadcasts via WS → syncCourtBookings auto-updates
-        renderAll();
-      } catch(e) {
-        // Session entry failed — still show walk-in success
-        document.getElementById('sg-s4').style.display = '';
-        document.getElementById('sg-queue-waiting').style.display = 'none';
-        document.getElementById('sg-sess-title').textContent = '直接入場成功！';
-        const _cLabel = sgCourt ? ` · ${sgCourt.icon} ${sgCourt.name}` : '';
-        document.getElementById('sg-sess-info').textContent  = `Zone ${sgZone}${_cLabel} · walk-in`;
-        document.getElementById('sg-timer').textContent = '∞';
-        sgGoStep(4);
-      }
-    } else {
-      // Queued
-      sgGoStep(4);
-      document.getElementById('sg-s4').style.display = 'none';
-      document.getElementById('sg-queue-waiting').style.display = '';
-      document.getElementById('sg-q-num').textContent = qr.queue_num;
-      document.getElementById('sg-sess-title').textContent = '已加入排隊！';
-    }
-  } catch(e) {
-    showErr('sg-zone-err', '加入排隊失敗：' + e.message);
-  }
-  btn.disabled = false; btn.textContent = '加入排隊 / 直接入場（/queue/join）';
-}
-
-function showSGSession(sr) {
-  const durMin = sr.duration_min || (sgCourt ? sgCourt.dur : null) || getZoneDur(sgZone);
-  sgElapsed = 0;
-  document.getElementById('sg-s4').style.display = '';
-  document.getElementById('sg-queue-waiting').style.display = 'none';
-  document.getElementById('sg-sess-title').textContent = '場次進行中 ✅';
-  const courtLabel = sgCourt ? `${sgCourt.icon} ${sgCourt.name}` : (ZONE_META[sgZone]?ZONE_META[sgZone].label:'');
-  document.getElementById('sg-sess-info').textContent =
-    `Zone ${sgZone} · ${courtLabel} · Session ID: ${sr.session_id||'—'}`;
-  document.getElementById('sg-timer').textContent = fmtSecs(durMin ? durMin*60 : null);
-  sgGoStep(4);
-}
-
-function startSGTimer() {
-  clearInterval(sgTimerIv);
-  const durMin = sgSession?.duration_min || (sgCourt ? sgCourt.dur : null) || getZoneDur(sgZone);
-  if (!durMin) return;
-  let rem = durMin * 60;
-  sgTimerIv = setInterval(() => {
-    rem--;
-    document.getElementById('sg-timer').textContent = fmtSecs(rem);
-    const col = rem < 300 ? '#EF4444' : rem < 600 ? '#F59E0B' : '#22C55E';
-    document.getElementById('sg-timer').style.color = col;
-    if (rem <= 0) clearInterval(sgTimerIv);
-  }, 1000);
-}
-
-async function doExtend() {
-  if (!sgSession?.session_id) { alert('無 session_id，無法延長'); return; }
-  try {
-    const r = await api('POST','/session/extend',{session_id: sgSession.session_id});
-    alert(`✅ 延長成功！新到期：${r.expires_at}`);
-  } catch(e) {
-    alert('延長失敗：' + e.message);
-  }
-}
-
-function sgReset() {
-  clearInterval(sgTimerIv);
-  // Release court booking + decrement zone count if user had an active session
-  if (sgCourt && sgSession) {
-    delete courtBookings[sgCourt.id];
-    localZoneAdd(sgZone, -1);
-  }
-  if (sgCamStream) { sgCamStream.getTracks().forEach(t=>t.stop()); sgCamStream=null; }
-  sgFaceId=null; sgUserId=null; sgUserName=null; sgZone=null; sgCourt=null; sgSession=null; sgCapturedB64=null;
-  document.getElementById('sg-name').value  = '';
-  document.getElementById('sg-phone').value = '';
-  document.getElementById('sg-hkid-inp').value = '';
-  document.getElementById('sg-btn-scan').disabled = true;
-  document.getElementById('sg-btn-cam').disabled  = false;
-  document.getElementById('sg-cam-status').textContent = '等待攝像頭…';
-  document.getElementById('sg-face-preview-wrap').style.display = 'none';
-  document.getElementById('sg-hkid-badge').style.display = 'none';
-  const vid = document.getElementById('sg-video');
-  vid.srcObject = null;
-  const ctx = document.getElementById('sg-canvas').getContext('2d');
-  ctx.clearRect(0,0,999,999);
-  setInfo('sg-scan-info','📷 請允許攝像頭存取，然後點擊「掃描人臉」。','blue');
-  sgSetMode('face'); // reset to face mode
-  sgGoStep(1);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ── SMARTCOUNT ─────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════
-async function startSCCamera() {
-  try {
-    scCamStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:false});
-    const vid = document.getElementById('sc-video');
-    vid.srcObject = scCamStream;
-    document.getElementById('sc-cam-status').textContent = '攝像頭就緒 — 點擊「開始偵測」';
-    document.getElementById('sc-btn-cam').disabled   = true;
-    document.getElementById('sc-btn-start').disabled = false;
-  } catch(e) {
-    alert('無法開啟攝像頭：' + e.message);
-  }
-}
-
-function startSCDetect() {
-  if (scDetectIv) return;
-  document.getElementById('sc-btn-start').disabled = true;
-  document.getElementById('sc-btn-stop').disabled  = false;
-  scFpsTs = Date.now(); scFpsFrames = 0;
-  scDetectIv = setInterval(scDetectFrame, 500);
-}
-
-function stopSCDetect() {
-  clearInterval(scDetectIv); scDetectIv = null;
-  if (scMode === 'demo') {
-    const ds = document.getElementById('sc-btn-demo-start');
-    const dp = document.getElementById('sc-btn-demo-stop');
-    if (ds) ds.disabled = false;
-    if (dp) dp.disabled = true;
-    document.getElementById('sc-cam-status').textContent = 'Demo 偵測已暫停';
-  } else {
-    document.getElementById('sc-btn-start').disabled = !scCamStream;
-    document.getElementById('sc-btn-stop').disabled  = true;
-    document.getElementById('sc-cam-status').textContent = '偵測已暫停';
-  }
-}
-
-async function scDetectFrame() {
-  const vid = document.getElementById('sc-video');
-  if (!vid.srcObject || vid.readyState < 2) return;
-  const b64 = captureFrame(vid);
-  try {
-    const result = await api('POST','/smartcount/frame',{image:b64});
-    scLastCount = result.count || 0;
-    document.getElementById('sc-count').textContent = scLastCount;
-    document.getElementById('sc-cam-status').textContent = `偵測到 ${scLastCount} 人`;
-
-    // Draw bounding boxes
-    drawSCBoxes(result, vid);
-
-    // Boxes list
-    const bl = document.getElementById('sc-boxes');
-    if (result.boxes && result.boxes.length) {
-      bl.innerHTML = result.boxes.map((b,i) =>
-        `<div style="margin-bottom:3px">#${i+1} · (${Math.round(b.x1)},${Math.round(b.y1)})→(${Math.round(b.x2)},${Math.round(b.y2)}) · ${Math.round(b.conf*100)}%</div>`
-      ).join('');
-    } else {
-      bl.textContent = '（未偵測到人物）';
-    }
-
-    // FPS
-    scFpsFrames++;
-    const elapsed = (Date.now()-scFpsTs)/1000;
-    if (elapsed >= 2) {
-      document.getElementById('sc-fps').textContent = `FPS: ${(scFpsFrames/elapsed).toFixed(1)}`;
-      scFpsFrames = 0; scFpsTs = Date.now();
-    }
-  } catch(e) {
-    document.getElementById('sc-cam-status').textContent = 'API 錯誤：' + e.message;
-  }
-}
-
-function drawSCBoxes(result, vid) {
-  const cvs = document.getElementById('sc-canvas');
-  cvs.width  = vid.videoWidth  || 640;
-  cvs.height = vid.videoHeight || 480;
-  const ctx  = cvs.getContext('2d');
-  ctx.clearRect(0,0,cvs.width,cvs.height);
-  if (!result.boxes || !result.boxes.length) return;
-
-  const sw = cvs.width  / (result.img_w || vid.videoWidth  || 640);
-  const sh = cvs.height / (result.img_h || vid.videoHeight || 480);
-
-  result.boxes.forEach((b,i) => {
-    const x = b.x1*sw, y = b.y1*sh, w = (b.x2-b.x1)*sw, h = (b.y2-b.y1)*sh;
-    ctx.strokeStyle = '#22C55E';
-    ctx.lineWidth   = 2;
-    ctx.strokeRect(x,y,w,h);
-    ctx.fillStyle   = 'rgba(34,197,94,.8)';
-    ctx.fillRect(x, y-22, w < 90 ? 90 : w, 22);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px Microsoft JhengHei,sans-serif';
-    ctx.fillText(`Person ${Math.round(b.conf*100)}%`, x+4, y-6);
-  });
-
-  // Count overlay
-  ctx.fillStyle = 'rgba(15,23,42,.8)';
-  ctx.fillRect(0,0,170,44);
-  ctx.fillStyle = '#F97316';
-  ctx.font = 'bold 22px Microsoft JhengHei,sans-serif';
-  ctx.fillText(`👥 ${result.count} 人`, 10, 30);
-}
-
-async function scPushZone(zid) {
-  const count = scLastCount;
-  const log = document.getElementById('sc-push-log');
-  try {
-    await api('POST','/zones/occupancy',{zone_id:zid, count});
-    // Also update local zone state
-    let z = zones.find(z => z.id === zid);
-    if (!z) { z = {id:zid, current_count:count, capacity:ZONE_CAP[zid]||30, status:'open'}; zones.push(z); }
-    else z.current_count = count;
-    renderAll();
-    const mode = scMode==='demo' ? ' [Demo]' : '';
-    const msg = `✅ Zone ${zid} ← ${count} 人（${new Date().toLocaleTimeString()}）${mode}`;
-    log.innerHTML = `<div style="color:#22C55E">${msg}</div>` + log.innerHTML;
-  } catch(e) {
-    log.innerHTML = `<div style="color:#EF4444">❌ ${e.message}</div>` + log.innerHTML;
-  }
-}
-
-// ── SmartCount Demo Mode ────────────────────────────────────────────────────
-function scSetMode(mode) {
-  scMode = mode;
-  stopSCDetect();
-  document.getElementById('sc-mode-real').className = 'mode-btn' + (mode==='real'?' active':'');
-  document.getElementById('sc-mode-demo').className = 'mode-btn' + (mode==='demo'?' active':'');
-  document.getElementById('sc-panel-demo').style.display = mode==='demo' ? '' : 'none';
-  document.getElementById('sc-real-btns').style.display  = mode==='real' ? 'flex' : 'none';
-  document.getElementById('sc-demo-btns').style.display  = mode==='demo' ? 'flex' : 'none';
-  if (mode==='demo') {
-    document.getElementById('sc-cam-status').textContent = 'Demo 模式就緒 — 點擊「開始 Demo 偵測」';
-    drawDemoIdle();
-  } else {
-    document.getElementById('sc-cam-status').textContent = '等待攝像頭…';
-    const cvs = document.getElementById('sc-canvas');
-    cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height);
-  }
-}
-
-function scDemoAdj(delta) {
-  scDemoN = Math.max(0, Math.min(12, scDemoN + delta));
-  document.getElementById('sc-demo-n').textContent = scDemoN;
-  if (scDetectIv) {
-    // Live update: add/remove people while running
-    initDemoPeople(scDemoN);
-  }
-}
-
-function initDemoPeople(n) {
-  while (scDemoPeople.length < n) {
-    scDemoPeople.push({
-      x: 40 + Math.random()*520,  y: 40 + Math.random()*350,
-      w: 50 + Math.random()*45,   h: 90 + Math.random()*70,
-      vx: (Math.random()-.5)*6,   vy: (Math.random()-.5)*4,
-      conf: 0.72 + Math.random()*0.25
+    await apiFetch(`/zones/${zid}/allocate`, {
+      method: 'POST',
+      body: JSON.stringify({ allocation: alloc }),
     });
+    showToast(`Z${zid} preset: ${presetName}`);
+    await fetchAll();
+  } catch (e) {
+    showToast(`Error: ${e.message}`);
   }
-  scDemoPeople = scDemoPeople.slice(0, n);
-}
+};
 
-function drawDemoIdle() {
-  const cvs = document.getElementById('sc-canvas');
-  cvs.width = 640; cvs.height = 480;
-  const ctx = cvs.getContext('2d');
-  ctx.fillStyle = '#0A1120'; ctx.fillRect(0,0,640,480);
-  // Grid
-  ctx.strokeStyle = '#1E293B'; ctx.lineWidth = 1;
-  for (let x=0;x<640;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,480);ctx.stroke();}
-  for (let y=0;y<480;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(640,y);ctx.stroke();}
-  ctx.fillStyle = '#162032'; ctx.font = 'bold 88px sans-serif';
-  ctx.textAlign = 'center'; ctx.fillText('DEMO', 320, 270);
-  ctx.fillStyle = '#475569'; ctx.font = '16px Microsoft JhengHei,sans-serif';
-  ctx.fillText('點擊「開始 Demo 偵測」啟動', 320, 316);
-  ctx.textAlign = 'left';
-}
+window.demoBookAll = async function(zid) {
+  const zone = zones.find(z => z.id === zid);
+  if (!zone) return;
+  const courts = zone.courts || 0;
+  const existingSessions = sessions.filter(s => s.zone_id === zid).length;
+  const toBook = courts - existingSessions;
 
-function startSCDetectDemo() {
-  if (scDetectIv) return;
-  document.getElementById('sc-btn-demo-start').disabled = true;
-  document.getElementById('sc-btn-demo-stop').disabled  = false;
-  initDemoPeople(scDemoN);
-  scFpsTs = Date.now(); scFpsFrames = 0;
-  scDetectIv = setInterval(scDetectFrameDemo, 300);
-}
+  if (toBook <= 0) {
+    showToast(`Z${zid}: All courts occupied`);
+    return;
+  }
 
-function scDetectFrameDemo() {
-  scDemoPeople.forEach(p => {
-    p.x += p.vx; p.y += p.vy;
-    if (p.x < 10 || p.x + p.w > 630) p.vx *= -1;
-    if (p.y < 10 || p.y + p.h > 470) p.vy *= -1;
-    p.conf = Math.min(0.97, Math.max(0.65, p.conf + (Math.random()-.5)*.02));
-  });
-  const boxes = scDemoPeople.map(p => ({
-    x1:Math.round(p.x), y1:Math.round(p.y),
-    x2:Math.round(p.x+p.w), y2:Math.round(p.y+p.h),
-    conf: p.conf
-  }));
-  const result = {count: scDemoPeople.length, boxes, img_w:640, img_h:480};
-  scLastCount = result.count;
-  document.getElementById('sc-count').textContent = scLastCount;
-  document.getElementById('sc-cam-status').textContent = `[Demo] 偵測到 ${scLastCount} 人`;
-  drawSCBoxesDemoCanvas(result);
-  const bl = document.getElementById('sc-boxes');
-  bl.innerHTML = boxes.length
-    ? boxes.map((b,i) =>
-        `<div style="margin-bottom:3px">#${i+1} · (${b.x1},${b.y1})→(${b.x2},${b.y2}) · ${Math.round(b.conf*100)}% <span style="color:#F59E0B">[Demo]</span></div>`
-      ).join('')
-    : '（無偵測結果）';
-  scFpsFrames++;
-  const elapsed = (Date.now()-scFpsTs)/1000;
-  if (elapsed >= 2) {
-    document.getElementById('sc-fps').textContent = `FPS: ${(scFpsFrames/elapsed).toFixed(1)} [Demo]`;
-    scFpsFrames = 0; scFpsTs = Date.now();
+  for (let i = 0; i < toBook; i++) {
+    try {
+      await apiFetch('/demo/book', {
+        method: 'POST',
+        body: JSON.stringify({ zone_id: zid }),
+      });
+    } catch (e) {
+      console.error(`Book error for ${zid}:`, e.message);
+    }
+  }
+  showToast(`Z${zid}: Booked ${toBook} courts`);
+  await fetchAll();
+};
+
+window.demoResetZone = async function(zid) {
+  try {
+    await apiFetch(`/demo/unbook/${zid}?court_num=0`, { method: 'POST' });
+    showToast(`Z${zid}: All sessions ended`);
+    await fetchAll();
+  } catch (e) {
+    showToast(`Reset error: ${e.message}`);
+  }
+};
+
+window.demoResetAll = async function() {
+  try {
+    await apiFetch('/demo/reset-all', { method: 'POST' });
+    showToast('ALL ZONES RESET');
+    await fetchAll();
+  } catch (e) {
+    showToast(`Reset error: ${e.message}`);
+  }
+};
+
+window.demoCourtToggle = async function(zid, courtNum, isOccupied) {
+  if (isOccupied) {
+    try {
+      await apiFetch(`/demo/unbook/${zid}?court_num=${courtNum}`, { method: 'POST' });
+      showToast(`Z${zid} court #${courtNum}: Session ended`);
+      await fetchAll();
+    } catch (e) {
+      showToast(`Unbook error: ${e.message}`);
+    }
+  } else {
+    try {
+      await apiFetch('/demo/book', {
+        method: 'POST',
+        body: JSON.stringify({ zone_id: zid, court_num: courtNum }),
+      });
+      showToast(`Z${zid} court #${courtNum}: Booked`);
+      await fetchAll();
+    } catch (e) {
+      showToast(`Book error: ${e.message}`);
+    }
+  }
+};
+
+// ── Device Commands ─────────────────────────────────────────────────────────
+
+async function deviceCmd(zid, device, action) {
+  try {
+    await apiFetch(`/devices/${zid}/${device}/command`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    });
+    showToast(`Z${zid} ${device}: ${action}`);
+  } catch (e) {
+    showToast(`Device error: ${e.message}`);
   }
 }
 
-function drawSCBoxesDemoCanvas(result) {
-  const cvs = document.getElementById('sc-canvas');
-  cvs.width = 640; cvs.height = 480;
-  const ctx = cvs.getContext('2d');
-  // Background + grid
-  ctx.fillStyle = '#0A1120'; ctx.fillRect(0,0,640,480);
-  ctx.strokeStyle = '#1E293B'; ctx.lineWidth = 1;
-  for (let x=0;x<640;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,480);ctx.stroke();}
-  for (let y=0;y<480;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(640,y);ctx.stroke();}
-  // Watermark
-  ctx.fillStyle = '#162032'; ctx.font = 'bold 88px sans-serif';
-  ctx.textAlign = 'center'; ctx.fillText('DEMO', 320, 270); ctx.textAlign = 'left';
-  // Bounding boxes
-  result.boxes.forEach(b => {
-    const x=b.x1, y=b.y1, w=b.x2-b.x1, h=b.y2-b.y1;
-    ctx.strokeStyle = '#22C55E'; ctx.lineWidth = 2; ctx.strokeRect(x,y,w,h);
-    ctx.fillStyle = 'rgba(34,197,94,.85)';
-    ctx.fillRect(x, y-22, w < 90 ? 90 : w, 22);
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Microsoft JhengHei,sans-serif';
-    ctx.fillText(`Person ${Math.round(b.conf*100)}%`, x+4, y-6);
+// ── WhatsApp Test ───────────────────────────────────────────────────────────
+
+async function sendWhatsApp() {
+  const zone = document.getElementById('waZone').value;
+  const user = document.getElementById('waUser').value;
+  const mins = parseInt(document.getElementById('waMinutes').value) || 5;
+  try {
+    const res = await apiFetch('/alerts/test-whatsapp', {
+      method: 'POST',
+      body: JSON.stringify({ zone_id: zone, user_name: user, minutes: mins }),
+    });
+    showToast(res.message || 'WhatsApp sent');
+  } catch (e) {
+    showToast(`WhatsApp error: ${e.message}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SMARTGATE
+// ══════════════════════════════════════════════════════════════════════════════
+
+let gateStream = null;
+let gateFaceId = null;
+let gateCurrentImage = null;
+
+function setGateMode(mode) {
+  document.querySelectorAll('#gateMode button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+async function startGateCamera() {
+  try {
+    gateStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+    document.getElementById('gateVideo').srcObject = gateStream;
+    showToast('Camera active');
+  } catch (e) {
+    showToast('Camera error: ' + e.message);
+  }
+}
+
+function stopGateCamera() {
+  if (gateStream) {
+    gateStream.getTracks().forEach(t => t.stop());
+    gateStream = null;
+    document.getElementById('gateVideo').srcObject = null;
+  }
+}
+
+function captureFrame(video) {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+async function gateScan() {
+  const video = document.getElementById('gateVideo');
+  if (!video.srcObject) {
+    showToast('Please enable camera first');
+    return;
+  }
+
+  gateCurrentImage = captureFrame(video);
+  const resultDiv = document.getElementById('gateResult');
+  const contentDiv = document.getElementById('gateResultContent');
+  resultDiv.style.display = 'block';
+  contentDiv.innerHTML = '<div style="color:var(--accent);font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;">SCANNING...</div>';
+
+  try {
+    const res = await apiFetch('/smartgate/scan', {
+      method: 'POST',
+      body: JSON.stringify({ image: gateCurrentImage }),
+    });
+
+    if (res.face_location) {
+      drawFaceBox('gateCanvas', video, res.face_location);
+    }
+
+    if (res.matched) {
+      gateFaceId = res.face_id;
+      try {
+        const user = await apiFetch(`/users/by-face/${res.face_id}`);
+        contentDiv.innerHTML = `
+          <div style="color:var(--green);font-family:var(--font-head);font-size:13px;font-weight:700;margin-bottom:8px;letter-spacing:0.06em;text-shadow:0 0 10px rgba(0,255,136,0.4);">MATCH FOUND</div>
+          <div style="font-size:12px;">Name: <strong style="color:var(--text-bright);">${esc(user.name)}</strong></div>
+          <div style="font-size:12px;color:var(--text-muted);">Phone: ${esc(user.phone)}</div>
+          <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:6px;">Face ID: ${esc(res.face_id)} | Score: ${res.score}</div>
+        `;
+        showGateZoneSelect(user);
+      } catch (e) {
+        contentDiv.innerHTML = `<div style="color:var(--amber);">Match found but unable to load user data</div>`;
+      }
+    } else if (res.detected) {
+      gateFaceId = res.face_id;
+      contentDiv.innerHTML = `
+        <div style="color:var(--amber);font-family:var(--font-head);font-size:13px;font-weight:700;margin-bottom:8px;letter-spacing:0.06em;text-shadow:0 0 10px rgba(255,170,0,0.3);">NEW FACE DETECTED</div>
+        <div style="font-size:11px;color:var(--text-muted);">Please fill the registration form</div>
+      `;
+      document.getElementById('regFaceId').value = res.face_id;
+      document.getElementById('gateRegForm').style.display = 'block';
+      document.getElementById('gateZoneSelect').style.display = 'none';
+    } else {
+      contentDiv.innerHTML = `
+        <div style="color:var(--red);font-family:var(--font-head);font-size:13px;font-weight:700;letter-spacing:0.06em;">NO FACE DETECTED</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${esc(res.message || 'Please face the camera directly')}</div>
+      `;
+    }
+  } catch (e) {
+    contentDiv.innerHTML = `<div style="color:var(--red);">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function drawFaceBox(canvasId, video, loc) {
+  const canvas = document.getElementById(canvasId);
+  const vw = video.videoWidth || 640;
+  const vh = video.videoHeight || 480;
+  canvas.width = vw;
+  canvas.height = vh;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, vw, vh);
+
+  // Draw main rect with glow
+  ctx.shadowColor = '#00d4ff';
+  ctx.shadowBlur = 12;
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(loc.left, loc.top, loc.right - loc.left, loc.bottom - loc.top);
+  ctx.shadowBlur = 0;
+
+  // Corner brackets (HUD style)
+  const sz = 16;
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 3;
+  // Top-left
+  ctx.beginPath(); ctx.moveTo(loc.left, loc.top + sz); ctx.lineTo(loc.left, loc.top); ctx.lineTo(loc.left + sz, loc.top); ctx.stroke();
+  // Top-right
+  ctx.beginPath(); ctx.moveTo(loc.right - sz, loc.top); ctx.lineTo(loc.right, loc.top); ctx.lineTo(loc.right, loc.top + sz); ctx.stroke();
+  // Bottom-left
+  ctx.beginPath(); ctx.moveTo(loc.left, loc.bottom - sz); ctx.lineTo(loc.left, loc.bottom); ctx.lineTo(loc.left + sz, loc.bottom); ctx.stroke();
+  // Bottom-right
+  ctx.beginPath(); ctx.moveTo(loc.right - sz, loc.bottom); ctx.lineTo(loc.right, loc.bottom); ctx.lineTo(loc.right, loc.bottom - sz); ctx.stroke();
+}
+
+async function registerUser() {
+  const name = document.getElementById('regName').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const faceId = document.getElementById('regFaceId').value;
+
+  if (!name || !phone) {
+    showToast('Please fill name and phone');
+    return;
+  }
+
+  try {
+    await apiFetch('/users/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, phone, face_id: faceId }),
+    });
+
+    if (gateCurrentImage) {
+      await apiFetch('/smartgate/save_face', {
+        method: 'POST',
+        body: JSON.stringify({ face_id: faceId, image: gateCurrentImage }),
+      });
+    }
+
+    document.getElementById('gateRegForm').style.display = 'none';
+    document.getElementById('gateResultContent').innerHTML = `
+      <div style="color:var(--green);font-family:var(--font-head);font-size:13px;font-weight:700;letter-spacing:0.06em;text-shadow:0 0 10px rgba(0,255,136,0.4);">REGISTERED</div>
+      <div style="font-size:12px;margin-top:6px;">Welcome ${esc(name)}! Please select a zone.</div>
+    `;
+
+    const user = await apiFetch(`/users/by-face/${faceId}`);
+    showGateZoneSelect(user);
+  } catch (e) {
+    showToast(`Registration error: ${e.message}`);
+  }
+}
+
+function showGateZoneSelect(user) {
+  document.getElementById('gateZoneSelect').style.display = 'block';
+  const el = document.getElementById('gateZones');
+  el.innerHTML = zones.map(z => {
+    const alloc = z.allocation || [];
+    const courts = z.courts || 0;
+    const zoneSessions = sessions.filter(s => s.zone_id === z.id).length;
+    const free = courts - zoneSessions;
+    const allocText = alloc.filter(a => a.count > 0).map(a => {
+      const cfg = SPORT_CONFIG[a.sport] || {};
+      return `${cfg.icon}${a.count}`;
+    }).join(' ');
+
+    return `
+      <div class="zone-card" style="cursor:pointer;text-align:center;padding:10px;" onclick="gateSelectZone('${esc(z.id)}','${esc(user.face_id || gateFaceId)}')">
+        <div class="zone-id" style="font-size:22px;">Z${esc(z.id)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin:4px 0;">${allocText}</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:${free > 0 ? 'var(--green)' : 'var(--red)'};">${free}/${courts} free</div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.gateSelectZone = async function(zid, faceId) {
+  try {
+    const user = await apiFetch(`/users/by-face/${faceId}`);
+    const qRes = await apiFetch('/queue/join', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: user.id, zone_id: zid }),
+    });
+
+    if (qRes.walk_in) {
+      const sessRes = await apiFetch('/session/enter', {
+        method: 'POST',
+        body: JSON.stringify({ face_id: faceId, zone_id: zid }),
+      });
+      showGateSession(sessRes, zid);
+    } else {
+      document.getElementById('gateSession').style.display = 'block';
+      document.getElementById('gateSessionInfo').innerHTML = `
+        <div style="text-align:center;">
+          <div style="font-family:var(--font-head);font-size:56px;color:var(--amber);font-weight:900;text-shadow:0 0 20px rgba(255,170,0,0.4);">#${qRes.queue_num}</div>
+          <div style="color:var(--text-muted);font-size:10px;margin-top:4px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">Queue Number</div>
+          <div style="margin-top:10px;font-size:12px;">Zone ${esc(zid)} | ${esc(qRes.message || '')}</div>
+        </div>
+      `;
+    }
+    document.getElementById('gateZoneSelect').style.display = 'none';
+    await fetchAll();
+  } catch (e) {
+    showToast(`Zone select error: ${e.message}`);
+  }
+};
+
+function showGateSession(sessRes, zid) {
+  document.getElementById('gateSession').style.display = 'block';
+  const mins = sessRes.duration_min || 45;
+  document.getElementById('gateSessionInfo').innerHTML = `
+    <div style="text-align:center;">
+      <div style="font-family:var(--font-head);font-size:56px;color:var(--green);font-weight:900;text-shadow:0 0 20px rgba(0,255,136,0.4);animation:dataPulse 3s infinite;">${mins}:00</div>
+      <div style="color:var(--text-muted);font-size:10px;margin-top:4px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">Session Timer</div>
+      <div style="margin-top:10px;font-size:12px;">Zone ${esc(zid)} | Court #${sessRes.court_num}</div>
+      <div style="margin-top:4px;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">ID: ${esc(sessRes.session_id)}</div>
+      <button class="btn btn-neon" style="margin-top:14px;" onclick="extendSession('${esc(sessRes.session_id)}')">Extend / 延長</button>
+    </div>
+  `;
+}
+
+async function extendSession(sid) {
+  try {
+    const res = await apiFetch('/session/extend', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sid }),
+    });
+    showToast(`Extended! Remaining: ${res.extensions_remaining}`);
+    await fetchAll();
+  } catch (e) {
+    showToast(`Extend error: ${e.message}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SMARTCOUNT
+// ══════════════════════════════════════════════════════════════════════════════
+
+let countStream = null;
+let countAutoInterval = null;
+let countAutoRunning = false;
+let countLastBoxes = [];
+let countDemoValue = 0;
+let countFrameCount = 0;
+let countFpsStart = 0;
+
+function setCountMode(mode) {
+  document.querySelectorAll('#countMode button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('countCameraSection').style.display = mode === 'camera' ? 'block' : 'none';
+  document.getElementById('countDemoSection').style.display = mode === 'demo' ? 'block' : 'none';
+}
+
+async function startCountCamera() {
+  try {
+    countStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+    document.getElementById('countVideo').srcObject = countStream;
+    showToast('Count camera active');
+  } catch (e) {
+    showToast('Camera error: ' + e.message);
+  }
+}
+
+function stopCountCamera() {
+  if (countAutoRunning) toggleCountAuto();
+  if (countStream) {
+    countStream.getTracks().forEach(t => t.stop());
+    countStream = null;
+    document.getElementById('countVideo').srcObject = null;
+  }
+}
+
+async function countCapture() {
+  const video = document.getElementById('countVideo');
+  if (!video.srcObject) {
+    showToast('Please enable camera first');
+    return;
+  }
+  const image = captureFrame(video);
+  try {
+    const res = await apiFetch('/smartcount/frame', {
+      method: 'POST',
+      body: JSON.stringify({ image }),
+    });
+    countLastBoxes = res.boxes || [];
+    document.getElementById('countResult').textContent = res.count;
+    drawCountBoxes(res.boxes, res.img_w, res.img_h);
+    renderCountBoxList(res.boxes);
+  } catch (e) {
+    console.error('SmartCount error:', e);
+  }
+}
+
+function toggleCountAuto() {
+  countAutoRunning = !countAutoRunning;
+  const btn = document.getElementById('countAutoBtn');
+  if (countAutoRunning) {
+    btn.textContent = 'Stop / 停止偵測';
+    btn.className = 'btn btn-red';
+    countFrameCount = 0;
+    countFpsStart = Date.now();
+    countAutoInterval = setInterval(async () => {
+      await countCapture();
+      countFrameCount++;
+      const elapsed = (Date.now() - countFpsStart) / 1000;
+      const fps = elapsed > 0 ? (countFrameCount / elapsed).toFixed(1) : '--';
+      document.getElementById('countFps').textContent = `FPS: ${fps}`;
+    }, 1000);
+  } else {
+    btn.textContent = '自動偵測';
+    btn.className = 'btn btn-green';
+    clearInterval(countAutoInterval);
+    document.getElementById('countFps').textContent = 'FPS: --';
+  }
+}
+
+function drawCountBoxes(boxes, imgW, imgH) {
+  const canvas = document.getElementById('countCanvas');
+  const video = document.getElementById('countVideo');
+  const vw = video.videoWidth || imgW || 640;
+  const vh = video.videoHeight || imgH || 480;
+  canvas.width = vw;
+  canvas.height = vh;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, vw, vh);
+
+  boxes.forEach((b, i) => {
+    const scaleX = imgW ? vw / imgW : 1;
+    const scaleY = imgH ? vh / imgH : 1;
+    const x1 = b.x1 * scaleX, y1 = b.y1 * scaleY;
+    const x2 = b.x2 * scaleX, y2 = b.y2 * scaleY;
+
+    // Glow box
+    ctx.shadowColor = '#00d4ff';
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = '#00d4ff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    ctx.shadowBlur = 0;
+
+    // HUD corners
+    const sz = 8;
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1, y1+sz); ctx.lineTo(x1, y1); ctx.lineTo(x1+sz, y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2-sz, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y1+sz); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1, y2-sz); ctx.lineTo(x1, y2); ctx.lineTo(x1+sz, y2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2-sz, y2); ctx.lineTo(x2, y2); ctx.lineTo(x2, y2-sz); ctx.stroke();
+
+    // Label
+    const label = `#${i+1} ${(b.conf * 100).toFixed(0)}%`;
+    ctx.font = '11px Fira Code, monospace';
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = 'rgba(0, 212, 255, 0.85)';
+    ctx.fillRect(x1, y1 - 18, tw + 8, 18);
+    ctx.fillStyle = '#000';
+    ctx.fillText(label, x1 + 4, y1 - 5);
   });
-  // Count overlay
-  ctx.fillStyle = 'rgba(15,23,42,.88)'; ctx.fillRect(0,0,192,52);
-  ctx.fillStyle = '#F97316'; ctx.font = 'bold 22px Microsoft JhengHei,sans-serif';
-  ctx.fillText(`👥 ${result.count} 人`, 10, 30);
-  ctx.fillStyle = '#F59E0B'; ctx.font = 'bold 12px Microsoft JhengHei,sans-serif';
-  ctx.fillText('DEMO MODE', 10, 48);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Utility
-// ═══════════════════════════════════════════════════════════════════════════
-function showErr(id, msg) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = '⚠ ' + msg;
-  el.style.display = '';
+function renderCountBoxList(boxes) {
+  const el = document.getElementById('countBoxList');
+  if (!boxes.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:8px;">NO DETECTIONS</div>';
+    return;
+  }
+  el.innerHTML = boxes.map((b, i) =>
+    `<div class="list-item" style="font-size:9px;">
+      <span style="color:var(--accent);font-weight:600;">#${i+1}</span>
+      <span>[${b.x1},${b.y1}]-[${b.x2},${b.y2}]</span>
+      <span style="color:var(--green);">${(b.conf * 100).toFixed(1)}%</span>
+    </div>`
+  ).join('');
 }
 
-function setInfo(id, msg, type='blue') {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.className = 'info-bar info-'+type;
-  el.innerHTML = msg;
+// Push to zone buttons
+function initCountPushBtns() {
+  const el = document.getElementById('countPushBtns');
+  el.innerHTML = ZONE_IDS.map(zid =>
+    `<button class="btn btn-xs btn-ghost" onclick="pushCountToZone('${zid}')">Z${zid}</button>`
+  ).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Clock
-// ═══════════════════════════════════════════════════════════════════════════
-setInterval(() => {
-  document.getElementById('sb-time').textContent = new Date().toLocaleTimeString('zh-HK');
-}, 1000);
+async function pushCountToZone(zid) {
+  const count = parseInt(document.getElementById('countResult').textContent) || countDemoValue;
+  try {
+    await apiFetch('/zones/occupancy', {
+      method: 'POST',
+      body: JSON.stringify({ zone_id: zid, count }),
+    });
+    showToast(`Pushed count ${count} to Z${zid}`);
+  } catch (e) {
+    showToast(`Push error: ${e.message}`);
+  }
+}
 
-// Session countdown in dashboard
-setInterval(() => {
-  const now = Date.now();
-  sessions = sessions.map(s => {
-    if (!s.expires_at) return s;
-    return {...s, _rem: Math.max(0, Math.round((new Date(s.expires_at)-now)/1000))};
-  });
-  renderSessions();
-}, 1000);
+// Demo mode
+function demoCountChange(delta) {
+  countDemoValue = Math.max(0, countDemoValue + delta);
+  document.getElementById('demoCount').textContent = countDemoValue;
+  document.getElementById('countResult').textContent = countDemoValue;
+}
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Init
-// ═══════════════════════════════════════════════════════════════════════════
-connectWS();
-ensureAllZones();
-renderAll();
+function demoCountReset() {
+  countDemoValue = 0;
+  document.getElementById('demoCount').textContent = 0;
+  document.getElementById('countResult').textContent = 0;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  INITIALIZATION
+// ══════════════════════════════════════════════════════════════════════════════
+
+(async function init() {
+  // Load zone config from backend first
+  await loadZoneConfig();
+
+  initCountPushBtns();
+  fetchAll();
+  connectWS();
+
+  // Polling fallback every 5 seconds
+  setInterval(fetchAll, 5000);
+
+  // Update status bar clock
+  setInterval(() => {
+    document.getElementById('statusTime').textContent = new Date().toLocaleTimeString('en-GB');
+  }, 1000);
+})();
 </script>
 </body>
 </html>
