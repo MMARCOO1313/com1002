@@ -8,268 +8,97 @@ Transform idle space under Sha Lek Highway (沙瀝公路), Sha Tin into an AI-po
 
 ---
 
-## v2.1 — Multi-Functional Zone System 多功能場地系統
-
-BridgeSpace v2.1 is a **fully unmanned** sports facility management system with **multi-functional zones** — every zone can dynamically switch between different sports. Switching sport automatically changes the court count and session duration. The entire operational loop runs without any staff intervention.
-
-### Key Feature: Multi-Functional Zones 多功能場地
-
-Every zone supports multiple sports. An admin can switch any zone's sport mode at any time (when no active sessions or queue entries exist). The system dynamically adjusts:
-
-| Zone Type | Available Sports | Court Configuration |
-|---|---|---|
-| **球場 (Court)** — Zones A, B | 🏀 籃球 Basketball · 🏐 排球 Volleyball | 籃球: 2 半場 (half-courts) · 排球: 1 全場 (full-court) |
-| **多功能 (Multi)** — Zones C, D, E | 🏸 羽毛球 Badminton · 🏓 乒乓球 Table Tennis · 🏓 匹克球 Pickleball | 羽毛球: 2場 · 乒乓球: 4台 · 匹克球: 2場 |
-
-When sport mode switches:
-- Court count changes automatically (e.g., 籃球 2 → 排球 1)
-- Session duration updates (e.g., 羽毛球 45min → 乒乓球 30min)
-- Sessions are tracked per-court (`court_num` in database)
-- Switch is blocked if any active sessions or queue entries exist
-
-### Autonomous Loop Architecture
-
-```
-    ┌──────────────────────────────────────────────────────────────┐
-    │                   AUTONOMOUS LOOP (10s cycle)                │
-    │                                                              │
-    │   ┌─────────┐    ┌──────────┐    ┌─────────┐    ┌────────┐ │
-    │   │  SENSE  │───→│  DECIDE  │───→│   ACT   │───→│ NOTIFY │ │
-    │   │SmartCount│   │Session   │    │Smart    │    │Alert   │ │
-    │   │YOLOv8n  │   │Manager + │    │Control  │    │Engine  │ │
-    │   │occupancy│   │Occupancy │    │lights/  │    │Telegram│ │
-    │   │detection│   │Watcher   │    │equipment│    │/Twilio │ │
-    │   └─────────┘   └──────────┘    └─────────┘   └────────┘  │
-    │        ↑                                           │        │
-    │        └───────────────────────────────────────────┘        │
-    └──────────────────────────────────────────────────────────────┘
-```
-
----
-
-## System Overview
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  SmartGate (kiosk_v2.py)       Backend API (main.py v2.1)        │
-│  Face recognition kiosk         FastAPI + SQLite + Autonomous     │
-│  Walk-in / Queue / Timer        Multi-functional zone system      │
-│  Session extension                                                │
-│                                                                   │
-│  SmartCount (detect.py)        SessionManager                     │
-│  YOLOv8 people counting        Timed sessions per court           │
-│                                                                   │
-│  SmartControl                  AutoQueue (OccupancyWatcher)       │
-│  IoT lights/hoops/gates         Auto-detect departure, call next  │
-│                                                                   │
-│  Zone Catalog                  AlertEngine                        │
-│  Sport config + switching       Telegram + Twilio phone calls     │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-| Sub-system | File | Description |
-|---|---|---|
-| **SmartGate** | `smartgate/kiosk_v2.py` | Face recognition fullscreen kiosk — register, queue, session timer, extend |
-| **Backend API** | `backend/main.py` | FastAPI REST + WebSocket, SQLite, autonomous loop, sport switching |
-| **Zone Catalog** | `backend/zone_catalog.py` | Multi-functional zone definitions + SPORT_CONFIG + DB normalizer |
-| **SessionManager** | `backend/session_manager.py` | Timed session lifecycle: active → warning → expired → overstay (per-court) |
-| **OccupancyWatcher** | `backend/auto_queue.py` | Departure detection + auto queue advancement |
-| **SmartControl** | `backend/smart_control.py` | IoT device controller (lights, basketball hoops, gates) |
-| **AlertEngine** | `backend/alert_engine.py` | Telegram messages + Twilio phone calls for incidents |
-| **SmartCount** | `smartcount/detect.py` | YOLOv8n real-time people counting via webcam → API |
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.10+
-- Webcam (for SmartGate face recognition and SmartCount)
-- pip packages: `fastapi`, `uvicorn`, `opencv-python`, `face_recognition`, `mediapipe`, `Pillow`, `requests`
-
-### 1. Start Backend API
+## Quick Start 快速啟動
 
 ```bash
+# 1. Start Backend API
 cd backend
 pip install -r requirements.txt
 python main.py
-# → API running on http://localhost:8000
-# → SQLite database auto-created with 5 zones (A–E)
-# → Autonomous loop starts (session expiry check every 10s)
+# → API on http://localhost:8000
+
+# 2. Open Dashboard
+# Open dashboard.html in Chrome
+# → Full management system UI
 ```
 
-On first start, the backend initializes all 5 zones from `zone_catalog.py`:
+That's it! The dashboard connects to the backend automatically and displays real-time zone data.
 
-| Zone | Default Sport | Courts | Session Duration |
+---
+
+## System Architecture 系統架構
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                 dashboard.html (Frontend)                │
+│  Single-file HTML — 主控大廳 / SmartGate / SmartCount    │
+│  / SmartControl / AlertEngine — 5 integrated pages       │
+│                        │                                 │
+│              REST API + WebSocket                        │
+│                        ▼                                 │
+│              backend/main.py (FastAPI)                   │
+│     ┌──────────┬──────────┬───────────┬──────────┐      │
+│     │ Zone     │ Session  │ Smart     │ Alert    │      │
+│     │ Catalog  │ Manager  │ Control   │ Engine   │      │
+│     │ 多功能場 │ 場次管理 │ IoT設備   │ 警報系統 │      │
+│     └──────────┴──────────┴───────────┴──────────┘      │
+│                        │                                 │
+│              SQLite (bridgespace.db)                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Dashboard Pages 功能頁面
+
+### 1. 主控大廳 (Main Dashboard)
+The home page showing a complete overview of the facility:
+- **Top stats**: Total courts (11), current headcount, active sessions, alert count
+- **Zone cards** (A–E): Each shows current sport, court availability (green/yellow/red), session duration
+- **Demo Control Panel**: Switch each zone's sport mode in real-time — see courts update dynamically
+- **Active Sessions**: Live countdown timers for all active sessions
+- **Queue List**: Current waiting queue with position numbers
+
+### 2. SmartGate 智能閘門
+Face recognition kiosk simulation for walk-in check-in:
+- **3-step flow**: Face Scan → Registration → Zone Selection → Session Start
+- **Court grid**: Shows individual court status (free/occupied) per zone
+- **Walk-in detection**: Auto-assigns to a free court when available
+- **Queue join**: Adds to queue when zone is full
+- **Session timer**: Countdown display with extension button (max 2x)
+
+### 3. SmartCount 智能計數
+YOLOv8-based people detection and counting:
+- **Per-zone headcount**: Push occupancy data to trigger autonomous actions
+- **Departure detection**: 3-tick stable confirmation to prevent false triggers
+- **Capacity monitoring**: Visual progress bars per zone
+
+### 4. SmartControl 智能控制
+IoT device management for each zone:
+- **Lights** (💡): On/Off/Flash — auto-controlled by session status
+- **Basketball Hoops** (🏀): Deploy/Retract — zone-specific
+- **Gates** (🚪): Open/Close — auto-triggered by queue calls
+- Device action log with timestamps
+
+### 5. AlertEngine 警報引擎
+Incident detection and notification system:
+- **Alert log**: All incidents with severity levels and timestamps
+- **Telegram integration**: Auto-sends messages for session overstay, overcapacity
+- **Twilio integration**: Phone calls for critical incidents (10+ min overstay)
+- Alert types: overstay, overcapacity, no-show, device fault
+
+---
+
+## Multi-Functional Zone System 多功能場地系統
+
+Every zone supports multiple sports. Switching sport mode dynamically changes the court count and session duration:
+
+| Zone Type | Zones | Available Sports | Court Config |
 |---|---|---|---|
-| A — 球場區 1 | 🏀 籃球 | 2 半場 | 45 min |
-| B — 球場區 2 | 🏐 排球 | 1 全場 | 45 min |
-| C — 多功能區 1 | 🏸 羽毛球 | 2 場 | 45 min |
-| D — 多功能區 2 | 🏓 乒乓球 | 4 台 | 30 min |
-| E — 多功能區 3 | 🏓 匹克球 | 2 場 | 30 min |
+| **球場 (Court)** | A, B | 🏀 籃球 Basketball / 🏐 排球 Volleyball | 籃球: 2 半場 / 排球: 1 全場 |
+| **多功能 (Multi)** | C, D, E | 🏸 羽毛球 Badminton / 🏓 乒乓球 Table Tennis / 🏓 匹克球 Pickleball | 羽毛球: 2場 / 乒乓球: 4台 / 匹克球: 2場 |
 
-### 2. Start SmartGate Kiosk
-
-```bash
-cd smartgate
-pip install -r requirements.txt
-python kiosk_v2.py --api http://localhost:8000
-# → Fullscreen tkinter kiosk with live camera feed
-# → Press Escape to exit fullscreen
-```
-
-The kiosk is a fullscreen touch-friendly application:
-- **Left half**: Live camera feed with face detection overlay (MediaPipe)
-- **Right half**: Interaction panel — home screen, face scan, registration, zone selection, session timer
-
-### 3. (Optional) Start SmartCount
-
-```bash
-cd smartcount
-python detect.py --zone A --show
-# → YOLOv8 people detection, pushes count to API every second
-```
-
-### 4. Switch Sport Mode (Admin)
-
-Use the API to switch a zone's sport:
-
-```bash
-# Switch Zone A from 籃球 to 排球
-curl -X POST http://localhost:8000/zones/A/switch-sport \
-  -H "Content-Type: application/json" \
-  -d '{"sport": "排球"}'
-
-# Switch Zone C from 羽毛球 to 乒乓球
-curl -X POST http://localhost:8000/zones/C/switch-sport \
-  -H "Content-Type: application/json" \
-  -d '{"sport": "乒乓球"}'
-```
-
-The switch will be rejected if there are active sessions or queue entries in that zone.
-
-### Optional: Enable Alerts
-
-```bash
-# Telegram alerts
-export TELEGRAM_BOT_TOKEN="your-bot-token"
-export TELEGRAM_CHAT_ID="your-chat-id"
-
-# Phone call alerts (critical incidents only)
-export TWILIO_SID="your-twilio-sid"
-export TWILIO_TOKEN="your-twilio-auth-token"
-export TWILIO_FROM="+1234567890"
-export ADMIN_PHONE="+85291234567"
-```
-
----
-
-## Kiosk User Flow (SmartGate kiosk_v2.py)
-
-### Home Screen
-Shows BridgeSpace branding and live zone occupancy with current sport info:
-```
-Zone A  🏀 籃球    1/2 場空閒
-Zone B  🏐 排球    1/1 場空閒
-Zone C  🏸 羽毛球  2/2 場空閒
-Zone D  🏓 乒乓球  3/4 台空閒
-Zone E  🏓 匹克球  2/2 場空閒
-```
-
-Two buttons: "掃描人臉 入場排隊" and "首次登記"
-
-### Face Scan → Zone Selection → Session
-```
-User scans face at kiosk → Identified (or redirected to register)
-   → Selects zone (shows sport, free courts, duration per session)
-   → If free court available: Walk-in! Session starts immediately
-   → If full: Join queue, get number, wait for auto-call
-
-Session active screen shows:
-   🏟️ 場次已開始
-   區域：多功能區 1 🏸 羽毛球
-   剩餘時間  38:24  (color-coded green/amber/red)
-   [⏱ 續時 (再加 15 分鐘)]  ← max 2 extensions
-```
-
-### Registration (First Visit)
-```
-Enter name + phone → Camera captures face encoding
-   → 128-d face vector stored locally (privacy-preserving, no photos)
-   → Registered in backend → Proceed to zone selection
-```
-
----
-
-## Autonomous Operation
-
-### Session Timer — Graduated Enforcement
-
-```
-Session starts (duration from zone's current sport config):
-   籃球/排球/羽毛球: 45 min
-   乒乓球/匹克球: 30 min
-
-Timeline:
-   [Start] ────────── [Warning 5min] ── [Expired] ── [Overstay 5min] ── [Critical 10min]
-      │                     │                │               │                   │
-   Lights ON           Lights flash     Lights OFF      Telegram msg       Phone call
-   Equipment ON        Warning alert    Hoops retract   to admin           to admin
-                       on kiosk         Gate locks
-```
-
-### Queue → Fully Automatic
-
-```
-Previous user leaves zone (detected by SmartCount)
-   → OccupancyWatcher confirms departure (3 stable ticks)
-   → SessionManager ends the leaving user's session
-   → SmartControl resets zone (lights on, equipment deployed)
-   → AutoQueue calls next person in queue
-   → User has 15 minutes to enter (no-show = auto-cancelled)
-```
-
-### Session Extension
-
-- Max 2 extensions per session
-- Each extension adds the zone's current session duration
-- Blocked if anyone is waiting in the queue for that zone
-
----
-
-## API Endpoints
-
-### Core
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/zones` | List all zones with occupancy, current sport, courts |
-| `POST` | `/zones/occupancy` | Push SmartCount data (triggers autonomous watcher) |
-| `POST` | `/zones/{zone_id}/switch-sport` | Switch zone sport mode (body: `{"sport": "排球"}`) |
-| `POST` | `/users/register` | Register new user (body: `{"name", "phone", "face_id"}`) |
-| `GET` | `/users/by-face/{face_id}` | Look up user by face encoding ID |
-| `POST` | `/queue/join` | Join queue (returns `walk_in: true` if direct entry) |
-| `POST` | `/queue/call-next/{zone_id}` | Manual call next (backup — auto-queue handles this) |
-
-### Autonomous (v2.1)
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/session/enter` | Start timed session (body: `{"face_id", "zone_id"}`) |
-| `POST` | `/session/extend` | Extend session (body: `{"session_id"}`, +1 period, max 2x) |
-| `GET` | `/sessions/active` | All active sessions with remaining time |
-| `GET` | `/devices` | Current IoT device states per zone |
-| `GET` | `/alerts` | Recent alert log |
-| `WebSocket` | `/ws` | Live updates: zones, queue, sessions, devices, alerts |
-
----
-
-## Technical Details
-
-### Zone Catalog (zone_catalog.py)
-
-The `SPORT_CONFIG` dict drives the entire multi-functional zone model:
+**Sport Config** (defined in `backend/zone_catalog.py`):
 
 ```python
 SPORT_CONFIG = {
@@ -285,36 +114,83 @@ SPORT_CONFIG = {
 }
 ```
 
-### Session Manager (session_manager.py)
+**Switch rules**:
+- Switch is blocked if any active sessions or queue entries exist in that zone
+- Court count and session duration update instantly
+- Sessions are tracked per-court (`court_num` in database)
 
-- Sessions bind to a specific `court_num` within each zone
-- Duration is read from the database (not hardcoded) — changes when sport mode switches
-- `_next_free_court()` assigns the lowest available court number
-- Expiry checker runs every 10 seconds with 4 phases: active → warning → expired → overstay
+---
 
-### SmartGate Kiosk (kiosk_v2.py)
+## Autonomous Operation 自主運行
 
-- Tkinter fullscreen application with OpenCV camera feed
-- Face detection: MediaPipe (fast, M2-optimized) + face_recognition (128-d encoding)
-- All zone data fetched dynamically from API — no hardcoded zone list
-- Sport icons rendered per zone: 🏀🏐🏸🏓
+The backend runs a 10-second autonomous loop that handles everything without staff:
 
-### Anti-炒場 Design
+```
+Session starts (duration depends on sport):
+   籃球/排球/羽毛球: 45 min
+   乒乓球/匹克球: 30 min
 
-- Zero online booking — must be physically present at kiosk
+Timeline:
+   [Start] ── [Warning 5min] ── [Expired] ── [Overstay 5min] ── [Critical 10min]
+      │             │                │               │                   │
+   Lights ON    Lights flash     Lights OFF     Telegram msg       Phone call
+   Equipment ON  Warning alert   Equipment off   to admin           to admin
+```
+
+**Queue auto-advancement**:
+- SmartCount detects departure → SessionManager ends session → SmartControl resets zone → AutoQueue calls next person → 15-min entry window (no-show = auto-cancel)
+
+---
+
+## API Endpoints
+
+### Core
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/zones` | List all zones with current sport, courts, occupancy |
+| `POST` | `/zones/occupancy` | Push SmartCount headcount data |
+| `POST` | `/zones/{zone_id}/switch-sport` | Switch zone sport mode `{"sport": "排球"}` |
+| `POST` | `/users/register` | Register new user `{"name", "phone", "face_id"}` |
+| `GET` | `/users/by-face/{face_id}` | Look up user by face encoding ID |
+| `POST` | `/queue/join` | Join queue (returns `walk_in: true` if direct entry) |
+
+### Sessions
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/session/enter` | Start timed session `{"face_id", "zone_id"}` |
+| `POST` | `/session/extend` | Extend session `{"session_id"}` (+1 period, max 2x) |
+| `GET` | `/sessions/active` | All active sessions with remaining time |
+
+### IoT & Alerts
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/devices` | Current IoT device states per zone |
+| `POST` | `/devices/{zone_id}/{device}/command` | Send device command |
+| `GET` | `/alerts` | Recent alert log |
+| `WebSocket` | `/ws` | Live updates: zones, queue, sessions, devices, alerts |
+
+---
+
+## Anti-炒場 Design 防炒場設計
+
+- Zero online booking — must be physically present
 - Face recognition prevents one person holding multiple spots
-- No-show auto-cancellation if person doesn't enter within 15 min
-- Walk-in allowed when zone has free courts (no queue needed)
+- No-show auto-cancellation after 15 minutes
+- Walk-in allowed when zone has free courts
 - Time-limited sessions prevent indefinite occupation
 
 ---
 
-## Project Structure
+## Project Structure 項目結構
 
 ```
 bridgespace-v2-clone/
+├── dashboard.html           # Single-file dashboard UI (主控大廳 + SmartGate + SmartCount + SmartControl + AlertEngine)
 ├── backend/
-│   ├── main.py              # FastAPI v2.1 — autonomous loop + sport switching
+│   ├── main.py              # FastAPI — autonomous loop + sport switching + WebSocket
 │   ├── zone_catalog.py      # SPORT_CONFIG + DEFAULT_ZONES + DB normalizer
 │   ├── session_manager.py   # Timed session lifecycle (per-court tracking)
 │   ├── auto_queue.py        # OccupancyWatcher + auto queue advancement
@@ -322,19 +198,29 @@ bridgespace-v2-clone/
 │   ├── alert_engine.py      # Telegram + Twilio alert system
 │   └── requirements.txt
 ├── smartgate/
-│   ├── kiosk_v2.py          # Face recognition fullscreen kiosk (MAIN UI)
+│   ├── kiosk_v2.py          # Face recognition fullscreen kiosk (optional, needs camera)
 │   ├── kiosk.py             # Legacy kiosk (v1)
-│   ├── face_matching.py     # Face matching utilities
-│   ├── face_db/             # Local face encoding storage (pickle)
-│   └── requirements.txt
+│   └── face_db/             # Local face encoding storage
 ├── smartcount/
-│   └── detect.py            # YOLOv8n people detection + API push
+│   └── detect.py            # YOLOv8n people detection
 ├── docs/
-│   └── operation-guide.md   # Operator runbook + architecture diagrams
 ├── tests/
-├── tools/
 └── README.md
 ```
+
+---
+
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Frontend | Single-file HTML + vanilla JS (no build step) |
+| Backend | Python FastAPI + SQLite |
+| Real-time | WebSocket (live zone/session/device updates) |
+| Face Recognition | face_recognition + MediaPipe (kiosk only) |
+| People Counting | YOLOv8n (smartcount only) |
+| IoT Control | Simulation mode (MQTT-ready for production) |
+| Alerts | Telegram Bot API + Twilio Voice |
 
 ---
 

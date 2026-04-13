@@ -25,6 +25,10 @@ TWILIO_TOKEN = os.environ.get("TWILIO_TOKEN", "")
 TWILIO_FROM = os.environ.get("TWILIO_FROM", "")
 ADMIN_PHONE = os.environ.get("ADMIN_PHONE", "")
 
+# Twilio WhatsApp (for overstay notifications)
+TWILIO_WHATSAPP_FROM = os.environ.get("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")  # Twilio sandbox default
+ADMIN_WHATSAPP = os.environ.get("ADMIN_WHATSAPP", "")  # e.g. "whatsapp:+852XXXXXXXX"
+
 
 class AlertEngine:
     def __init__(self, get_db, broadcast):
@@ -73,6 +77,57 @@ class AlertEngine:
             "time": datetime.now().isoformat(),
         })
 
+    # ── WhatsApp (Twilio) ─────────────────────────────────────────────────
+
+    async def send_whatsapp(self, message: str, severity: str = "warning"):
+        prefix = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}.get(severity, "ℹ️")
+        full_msg = (
+            f"{prefix} *BridgeSpace Alert*\n\n"
+            f"{message}\n\n"
+            f"🕐 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+
+        print(f"[AlertEngine] WhatsApp ({severity}): {message}")
+
+        if not all([TWILIO_SID, TWILIO_TOKEN, ADMIN_WHATSAPP]):
+            print("[AlertEngine] Twilio WhatsApp not configured — simulating")
+            await self.broadcast({
+                "type": "alert",
+                "severity": severity,
+                "message": f"[WhatsApp SIMULATED] {message}",
+                "time": datetime.now().isoformat(),
+            })
+            await self._log_alert(None, "whatsapp_skip", severity, f"[simulated] {message}")
+            return {"ok": True, "simulated": True, "message": "WhatsApp 未配置 — 已模擬發送"}
+
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json"
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(url, auth=(TWILIO_SID, TWILIO_TOKEN), data={
+                    "From": TWILIO_WHATSAPP_FROM,
+                    "To": ADMIN_WHATSAPP,
+                    "Body": full_msg,
+                })
+                resp_data = resp.json()
+                if resp.status_code in (200, 201):
+                    print(f"[AlertEngine] WhatsApp sent: SID={resp_data.get('sid','?')}")
+                else:
+                    print(f"[AlertEngine] WhatsApp API error: {resp.text}")
+                    return {"ok": False, "message": f"Twilio error: {resp_data.get('message', resp.text)}"}
+        except Exception as e:
+            print(f"[AlertEngine] WhatsApp send failed: {e}")
+            return {"ok": False, "message": str(e)}
+
+        # Also broadcast alert to frontend dashboard
+        await self.broadcast({
+            "type": "alert",
+            "severity": severity,
+            "message": f"[WhatsApp已發送] {message}",
+            "time": datetime.now().isoformat(),
+        })
+        await self._log_alert(None, "whatsapp", severity, message)
+        return {"ok": True, "simulated": False, "message": "WhatsApp 訊息已成功發送"}
+
     # ── Phone call (Twilio) ──────────────────────────────────────────────────
 
     async def make_phone_call(self, message: str):
@@ -103,9 +158,20 @@ class AlertEngine:
         if key in self._overstay_notified:
             return
         self._overstay_notified.add(key)
+
+        msg = (f"Zone {zone_id} - user {user_name} has overstayed by {minutes} minute(s).\n"
+               f"Lights have been turned off and equipment has been retracted.")
+
         await self.send_telegram(
-            f"Zone {zone_id} - user <b>{user_name}</b> has overstayed by {minutes} minute(s).\n"
-            f"Lights have been turned off and equipment has been retracted.",
+            msg.replace(user_name, f"<b>{user_name}</b>"),
+            "warning"
+        )
+        # Also send WhatsApp to admin
+        await self.send_whatsapp(
+            f"Zone {zone_id} 超時警告\n"
+            f"用戶：{user_name}\n"
+            f"超時：{minutes} 分鐘\n"
+            f"燈光已關閉，器材已收起。請跟進。",
             "warning"
         )
         await self._log_alert(zone_id, "overstay", "warning",

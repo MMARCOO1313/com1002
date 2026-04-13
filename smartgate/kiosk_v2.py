@@ -4,14 +4,13 @@ On-site self-service terminal for walk-in registration, queue joining,
 session entry, session extension, and live session timer display.
 Uses MediaPipe (faster, better M2 support) + face_recognition for embedding.
 
-Run:  python kiosk.py --api http://localhost:8000
+Run:  python kiosk_v2.py --api http://localhost:8000
+Demo: python kiosk_v2.py --api http://localhost:8000 --demo
 """
 
-import cv2
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
-import numpy as np
 import requests
 import json
 import os
@@ -19,7 +18,19 @@ import pickle
 import time
 import datetime
 from pathlib import Path
-from PIL import Image, ImageTk
+
+# ─── Demo mode flag (set via --demo CLI arg) ────────────────────────────────
+DEMO_MODE = False
+
+# ─── Optional heavy imports (skipped in demo mode) ─────────────────────────
+try:
+    import cv2
+    import numpy as np
+    from PIL import Image, ImageTk
+    CV2_OK = True
+except ImportError:
+    CV2_OK = False
+    print("[SmartGate] OpenCV/Pillow not found — demo mode only")
 
 try:
     import face_recognition
@@ -32,9 +43,9 @@ try:
     import mediapipe as mp
     mp_face_detection = mp.solutions.face_detection
     MEDIAPIPE_OK = True
-except ImportError:
+except (ImportError, AttributeError):
     MEDIAPIPE_OK = False
-    print("[SmartGate] MediaPipe not found — basic OpenCV face detection will be used")
+    print("[SmartGate] MediaPipe not available — basic OpenCV face detection will be used")
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -69,8 +80,13 @@ class FaceDB:
         self.data[face_id] = encoding
         self._save()
 
-    def match(self, encoding: np.ndarray, tolerance: float = 0.5) -> str | None:
+    def match(self, encoding, tolerance: float = 0.5) -> str | None:
         """Returns face_id of best match or None."""
+        if DEMO_MODE:
+            # In demo mode, return first known face_id if any
+            if self.data:
+                return list(self.data.keys())[0]
+            return None
         if not self.data:
             return None
         known_ids = list(self.data.keys())
@@ -96,6 +112,11 @@ class CameraThread(threading.Thread):
         self._lock = threading.Lock()
 
     def run(self):
+        if DEMO_MODE or not CV2_OK:
+            # No camera in demo mode — just idle
+            while self.running:
+                time.sleep(0.5)
+            return
         cap = cv2.VideoCapture(self.cam_idx)
         while self.running:
             ret, frame = cap.read()
@@ -113,8 +134,12 @@ class CameraThread(threading.Thread):
         self.running = False
 
 
-def capture_face_encoding(frame: np.ndarray):
+def capture_face_encoding(frame):
     """Extract 128-d face encoding from frame. Returns None if no face found."""
+    if DEMO_MODE:
+        import uuid
+        # In demo mode, return a fake encoding
+        return "demo_encoding", None
     if FACE_LIB != "face_recognition":
         return None, "face_recognition 未安裝，請安裝後重試"
 
@@ -221,7 +246,11 @@ class BridgeSpaceKiosk(tk.Tk):
         self._active_session = None     # current session dict
 
         self._build_ui()
-        self._refresh_cam()
+        if not DEMO_MODE and CV2_OK:
+            self._refresh_cam()
+        else:
+            # Demo mode: show a placeholder on the camera panel
+            self._show_demo_cam_placeholder()
 
     # ── UI builders ──────────────────────────────────────────────────────────
 
@@ -329,6 +358,12 @@ class BridgeSpaceKiosk(tk.Tk):
         self.after(1500, self._do_face_scan)
 
     def _do_face_scan(self):
+        if DEMO_MODE:
+            # Demo: simulate face scan
+            self.scan_status.config(text="📷 模擬掃描中…", fg=self.AMBER)
+            self.after(1000, self._demo_face_result)
+            return
+
         frame = self.cam.get_frame()
         if frame is None:
             self.scan_status.config(text="鏡頭未就緒，請稍後再試", fg=self.RED)
@@ -370,6 +405,34 @@ class BridgeSpaceKiosk(tk.Tk):
         self._pending_face_id = None
         self.scan_status.config(text="未找到您的記錄，請先登記", fg=self.AMBER)
         self.after(1500, self._show_register_prompt)
+
+    def _demo_face_result(self):
+        """Demo mode: simulate a recognized or new user."""
+        # Check if we have a demo user registered already
+        user = api_get_user_by_face("demo_face_001")
+        if user:
+            self._current_user = user
+            self._current_user["face_id"] = "demo_face_001"
+            self.scan_status.config(text=f"✅  識別成功：{user['name']}", fg=self.GREEN)
+            # Check for active session
+            active = api_get_active_sessions()
+            user_session = None
+            for s in active:
+                if s.get("user_id") == user["id"]:
+                    user_session = s
+                    break
+            if user_session:
+                self.after(1200, lambda: self._show_session_started(
+                    user_session["zone_id"],
+                    {"session_id": user_session.get("id", ""),
+                     "duration_min": max(1, int(user_session.get("remaining_seconds", 60) / 60)),
+                     "extensions": user_session.get("extensions", 0)}
+                ))
+            else:
+                self.after(1200, self._show_zone_select)
+        else:
+            self.scan_status.config(text="未找到您的記錄，請先登記", fg=self.AMBER)
+            self.after(1500, self._show_register_prompt)
 
     # ── Register ─────────────────────────────────────────────────────────────
 
@@ -421,6 +484,19 @@ class BridgeSpaceKiosk(tk.Tk):
         self.after(800, lambda: self._capture_and_register(name, phone))
 
     def _capture_and_register(self, name: str, phone: str):
+        if DEMO_MODE:
+            # Demo: skip camera, use fixed face_id
+            face_id = "demo_face_001"
+            try:
+                result = api_register(name, phone, face_id)
+                face_db.add(face_id, "demo_encoding")
+                self._current_user = {"id": result["user_id"], "name": name, "phone": phone, "face_id": face_id}
+                self.reg_status.config(text=f"✅ 登記成功！歡迎 {name}", fg=self.GREEN)
+                self.after(1200, self._show_zone_select)
+            except Exception as e:
+                self.reg_status.config(text=f"登記失敗：{e}", fg=self.RED)
+            return
+
         frame = self.cam.get_frame()
         if frame is None:
             self.reg_status.config(text="鏡頭未就緒", fg=self.RED)
@@ -667,6 +743,16 @@ class BridgeSpaceKiosk(tk.Tk):
         except Exception as e:
             messagebox.showerror("錯誤", str(e))
 
+    # ── Demo camera placeholder ─────────────────────────────────────────────
+
+    def _show_demo_cam_placeholder(self):
+        """Show a placeholder label instead of live camera in demo mode."""
+        self.cam_label.config(
+            text="📷  DEMO MODE\n\n鏡頭模擬中\n（展覽演示用）",
+            font=self.FONT_LARGE, fg=self.GRAY, bg="#1A1A2E",
+            compound="center", justify="center",
+        )
+
     # ── Camera refresh ───────────────────────────────────────────────────────
 
     def _refresh_cam(self):
@@ -711,8 +797,12 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--api", default="http://localhost:8000")
+    parser.add_argument("--demo", action="store_true", help="Demo mode: no camera/face_recognition needed")
     args = parser.parse_args()
     API_URL = args.api
+    if args.demo:
+        DEMO_MODE = True
+        print("[SmartGate] DEMO MODE - no camera required")
 
     app = BridgeSpaceKiosk()
     app.protocol("WM_DELETE_WINDOW", app.on_close)

@@ -515,7 +515,67 @@ def get_device_states():
     return smart_control.get_all_states()
 
 
+class DeviceCommand(BaseModel):
+    action: str
+
+
+@app.post("/devices/{zone_id}/{device}/command")
+async def device_command(zone_id: str, device: str, cmd: DeviceCommand):
+    """Send a command to a specific device in a zone."""
+    action = cmd.action
+    try:
+        if device == "light":
+            if action == "on":
+                await smart_control.lights_on(zone_id)
+            elif action == "off":
+                await smart_control.lights_off(zone_id)
+            elif action == "flash":
+                await smart_control.lights_flash(zone_id)
+            else:
+                raise HTTPException(400, f"Unknown light action: {action}")
+        elif device == "hoop":
+            if action == "deploy":
+                await smart_control.equipment_deploy(zone_id)
+            elif action == "retract":
+                await smart_control.equipment_retract(zone_id)
+            else:
+                raise HTTPException(400, f"Unknown hoop action: {action}")
+        elif device == "gate":
+            if action == "open":
+                await smart_control.gate_open(zone_id)
+            elif action == "lock":
+                await smart_control.gate_lock(zone_id)
+            else:
+                raise HTTPException(400, f"Unknown gate action: {action}")
+        else:
+            raise HTTPException(400, f"Unknown device: {device}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    return {"ok": True, "zone_id": zone_id, "device": device, "action": action}
+
+
 # --- Alerts ------------------------------------------------------------------
+
+class WhatsAppTest(BaseModel):
+    zone_id: str
+    user_name: str = "Demo User"
+    minutes: int = 5
+
+
+@app.post("/alerts/test-whatsapp")
+async def test_whatsapp(data: WhatsAppTest):
+    """Demo endpoint: trigger a WhatsApp overstay notification."""
+    result = await alert_engine.send_whatsapp(
+        f"[DEMO] Zone {data.zone_id} 超時警告\n"
+        f"用戶：{data.user_name}\n"
+        f"超時：{data.minutes} 分鐘\n"
+        f"燈光已關閉，器材已收起。請即處理。",
+        "warning"
+    )
+    return result
+
 
 @app.get("/alerts")
 def get_alerts(limit: int = 20):
