@@ -1,11 +1,17 @@
 """
-SmartControl — Dynamic IoT device controller for BridgeSpace zones.
+SmartControl — IoT device controller for BridgeSpace zones.
 
-Devices are determined by each zone's current sport allocation:
-  - All zones:  light (on/off/flash), gate (open/lock)
-  - 籃球:       hoop  (deploy/retract)
-  - 羽毛球/匹克球/排球: net (setup/remove)
-  - 乒乓球:     table (setup/fold)
+Every zone is a "multi-function sports box" — each of the ten zones is
+physically equipped with:
+  - light (on/off/flash)
+  - gate  (open/lock)
+  - hoop  (deploy/retract)   — for basketball
+  - net   (setup/remove)     — for badminton / pickleball / volleyball
+  - table (setup/fold)       — for table tennis
+
+All five devices exist in every zone, so commands are always accepted;
+the zone's current sport allocation only influences which are in use,
+not which are controllable.
 
 In production: sends MQTT commands to Raspberry Pi actuators.
 In demo/exhibition: logs actions + broadcasts state to frontend.
@@ -19,7 +25,6 @@ from typing import Optional
 from zone_catalog import DEFAULT_ZONES, SPORT_CONFIG
 
 
-# Equipment types mapped from sport config
 EQUIPMENT_LABELS = {
     "hoop":  {"zh": "籃框",  "deploy": "部署", "retract": "收起"},
     "net":   {"zh": "球網",  "setup": "架設",  "remove": "收起"},
@@ -28,7 +33,7 @@ EQUIPMENT_LABELS = {
 
 
 class SmartControl:
-    """Controls physical devices in each zone — dynamic per allocation."""
+    """Controls physical devices in each zone — all zones have all devices."""
 
     def __init__(self, get_db, broadcast, mqtt_client=None):
         self.get_db = get_db
@@ -40,39 +45,33 @@ class SmartControl:
     def _init_state(self):
         for zone in DEFAULT_ZONES:
             zid = zone["id"]
+            # Every zone has every device at rest.
             self.state[zid] = {
                 "light": "off",
-                "gate": "locked",
-                "hoop": "n/a",
-                "net": "n/a",
-                "table": "n/a",
+                "gate":  "locked",
+                "hoop":  "retracted",
+                "net":   "removed",
+                "table": "fold",
             }
-            # Set equipment from default allocation
-            for alloc_item in zone.get("default_alloc", []):
-                sport = alloc_item["sport"]
-                cfg = SPORT_CONFIG.get(sport, {})
-                for equip in cfg.get("equipment", []):
-                    self.state[zid][equip] = "retracted" if equip == "hoop" else "removed"
 
     def update_zone_equipment(self, zone_id: str, allocation: list):
-        """Reconfigure equipment when zone allocation changes."""
+        """Ensure state row exists. Devices are always controllable —
+        allocation no longer disables any device (multifunction box)."""
         if zone_id not in self.state:
-            self.state[zone_id] = {"light": "off", "gate": "locked"}
-        # Reset all equipment to n/a
-        for eq in ("hoop", "net", "table"):
-            self.state[zone_id][eq] = "n/a"
-        # Enable equipment for allocated sports
-        for alloc_item in allocation:
-            sport = alloc_item.get("sport", "")
-            count = alloc_item.get("count", 0)
-            if count <= 0:
-                continue
-            cfg = SPORT_CONFIG.get(sport, {})
-            for equip in cfg.get("equipment", []):
-                if equip == "hoop":
-                    self.state[zone_id][equip] = "retracted"
-                else:
-                    self.state[zone_id][equip] = "removed"
+            self.state[zone_id] = {
+                "light": "off",
+                "gate":  "locked",
+                "hoop":  "retracted",
+                "net":   "removed",
+                "table": "fold",
+            }
+            return
+        # Backfill any missing keys for zones created at runtime.
+        defaults = {"light": "off", "gate": "locked", "hoop": "retracted",
+                    "net": "removed", "table": "fold"}
+        for k, v in defaults.items():
+            if self.state[zone_id].get(k) in (None, "n/a"):
+                self.state[zone_id][k] = v
 
     # ── Light control ────────────────────────────────────────────────────────
 
@@ -94,22 +93,53 @@ class SmartControl:
     # ── Equipment control ───────────────────────────────────────────────────
 
     async def equipment_deploy(self, zone_id: str):
-        """Deploy all equipment in the zone."""
-        st = self.state.get(zone_id, {})
-        for eq in ("hoop", "net", "table"):
-            if st.get(eq) not in ("n/a", None):
-                st[eq] = "deployed" if eq == "hoop" else "setup"
-                await self._send_command(zone_id, eq, "deploy")
-                await self._log(zone_id, eq, "deploy", "new_session")
+        """Deploy all equipment in the zone (hoop down, net up, table set)."""
+        self.state.setdefault(zone_id, {})
+        mapping = {"hoop": "deployed", "net": "setup", "table": "setup"}
+        for eq, rest in mapping.items():
+            self.state[zone_id][eq] = rest
+            await self._send_command(zone_id, eq, "deploy")
+            await self._log(zone_id, eq, "deploy", "new_session")
 
     async def equipment_retract(self, zone_id: str):
-        """Retract/fold all equipment in the zone."""
-        st = self.state.get(zone_id, {})
-        for eq in ("hoop", "net", "table"):
-            if st.get(eq) not in ("n/a", None):
-                st[eq] = "retracted" if eq == "hoop" else "removed"
-                await self._send_command(zone_id, eq, "retract")
-                await self._log(zone_id, eq, "retract", "session_expire")
+        """Retract / fold all equipment in the zone."""
+        self.state.setdefault(zone_id, {})
+        mapping = {"hoop": "retracted", "net": "removed", "table": "fold"}
+        for eq, rest in mapping.items():
+            self.state[zone_id][eq] = rest
+            await self._send_command(zone_id, eq, "retract")
+            await self._log(zone_id, eq, "retract", "session_expire")
+
+    # Individual hoop / net / table commands — so every device is controllable.
+    async def hoop_deploy(self, zone_id: str):
+        self.state.setdefault(zone_id, {})["hoop"] = "deployed"
+        await self._send_command(zone_id, "hoop", "deploy")
+        await self._log(zone_id, "hoop", "deploy", "manual")
+
+    async def hoop_retract(self, zone_id: str):
+        self.state.setdefault(zone_id, {})["hoop"] = "retracted"
+        await self._send_command(zone_id, "hoop", "retract")
+        await self._log(zone_id, "hoop", "retract", "manual")
+
+    async def net_setup(self, zone_id: str):
+        self.state.setdefault(zone_id, {})["net"] = "setup"
+        await self._send_command(zone_id, "net", "setup")
+        await self._log(zone_id, "net", "setup", "manual")
+
+    async def net_remove(self, zone_id: str):
+        self.state.setdefault(zone_id, {})["net"] = "removed"
+        await self._send_command(zone_id, "net", "remove")
+        await self._log(zone_id, "net", "remove", "manual")
+
+    async def table_setup(self, zone_id: str):
+        self.state.setdefault(zone_id, {})["table"] = "setup"
+        await self._send_command(zone_id, "table", "setup")
+        await self._log(zone_id, "table", "setup", "manual")
+
+    async def table_fold(self, zone_id: str):
+        self.state.setdefault(zone_id, {})["table"] = "fold"
+        await self._send_command(zone_id, "table", "fold")
+        await self._log(zone_id, "table", "fold", "manual")
 
     # ── Gate control ────────────────────────────────────────────────────────
 

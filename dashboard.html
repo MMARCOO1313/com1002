@@ -3,1388 +3,2195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BridgeSpace Control — AI Community Sports Hub</title>
+<title>BridgeSpace — 主控台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,0..100;1,9..144,300..800,0..100&family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@300;500;700&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ══════════════════════════════════════════════════════════════════════════════
-   BridgeSpace Control — Cyberpunk HUD Aesthetic
-   Tron Legacy × Iron Man HUD × Cyberpunk 2077
-   ══════════════════════════════════════════════════════════════════════════════ */
+/* ──────────────────────────────────────────────────────────────────────────
+   BridgeSpace 主控台
+   Editorial civic operations — warm, typographic, human.
+   ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --bg: #05080f;
-  --panel: #0a1628;
-  --card: #0d1f3c;
-  --border: #1a3a6a;
-  --glow: #00d4ff;
-  --glow-dim: #00d4ff30;
-  --glow-micro: #00d4ff12;
-  --accent: #00d4ff;
-  --accent2: #ff6b35;
-  --green: #00ff88;
-  --red: #ff3366;
-  --amber: #ffaa00;
-  --text: #b8d4e8;
-  --text-bright: #e0f0ff;
-  --text-muted: #4a6a8a;
-  --font-head: 'Orbitron', sans-serif;
-  --font-tc: 'Noto Sans TC', sans-serif;
-  --font-mono: 'Fira Code', 'JetBrains Mono', monospace;
+  /* Ink on paper, inverted. Warm, not blue-black. */
+  --paper:            #1a1916;
+  --paper-raised:    #232019;
+  --paper-sunken:    #15140f;
+  --surface:         #2a2620;
+  --rule:            #3a362d;
+  --rule-soft:       #2a2620;
+
+  --ink:             #f1ecdf;
+  --ink-soft:        #cdc6b4;
+  --ink-muted:       #857f6d;
+  --ink-faint:       #57534a;
+
+  /* Paint colours, not software neon. */
+  --terracotta:      #d96b3c;
+  --terracotta-deep: #b24e24;
+  --terracotta-soft: rgba(217, 107, 60, 0.14);
+
+  --moss:            #9dbd6c;
+  --moss-soft:       rgba(157, 189, 108, 0.12);
+
+  --ochre:           #d4a03a;
+  --ochre-soft:      rgba(212, 160, 58, 0.12);
+
+  --brick:           #c05848;
+  --brick-soft:      rgba(192, 88, 72, 0.12);
+
+  --display: 'Fraunces', 'Noto Serif TC', Georgia, serif;
+  --body:    'Noto Sans TC', -apple-system, 'Segoe UI', sans-serif;
+  --mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 14px; }
+html { font-size: 15px; }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-tc);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-weight: 400;
+  min-height: 100vh;
   display: flex;
-  height: 100vh;
-  overflow: hidden;
-  position: relative;
+  flex-direction: column;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Scan-line CRT overlay ──────────────────────────────────────────────── */
+/* Very subtle paper grain — gives warmth without shouting. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9998;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 212, 255, 0.015) 2px,
-    rgba(0, 212, 255, 0.015) 4px
-  );
-  animation: scanlines 8s linear infinite;
-}
-@keyframes scanlines {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 200px; }
-}
-
-/* ── Hexagonal grid background ──────────────────────────────────────────── */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100' fill='none' stroke='%2300d4ff' stroke-width='0.5'/%3E%3Cpath d='M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34' fill='none' stroke='%2300d4ff' stroke-width='0.5'/%3E%3C/svg%3E");
-  background-size: 56px 100px;
-  animation: hexDrift 20s linear infinite;
-}
-@keyframes hexDrift {
-  0% { background-position: 0 0; }
-  100% { background-position: 56px 100px; }
-}
-
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); box-shadow: 0 0 6px var(--glow); }
-
-::selection { background: var(--glow-dim); color: var(--text-bright); }
-
-/* ── Keyframes ──────────────────────────────────────────────────────────── */
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--green); }
-  50% { opacity: 0.6; box-shadow: 0 0 12px var(--green); }
-}
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 4px var(--glow), inset 0 0 4px var(--glow-micro); }
-  50% { box-shadow: 0 0 16px var(--glow), inset 0 0 8px var(--glow-micro); }
-}
-@keyframes borderGlow {
-  0%, 100% { border-color: var(--border); }
-  50% { border-color: var(--glow); }
-}
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes glitch {
-  0% { text-shadow: 2px 0 var(--accent2), -2px 0 var(--accent); }
-  20% { text-shadow: -2px 0 var(--accent2), 2px 0 var(--accent); }
-  40% { text-shadow: 2px 2px var(--accent2), -1px -2px var(--accent); }
-  60% { text-shadow: -1px 2px var(--accent2), 1px -1px var(--accent); }
-  80% { text-shadow: 2px -2px var(--accent2), -2px 2px var(--accent); }
-  100% { text-shadow: 0 0 var(--accent2), 0 0 var(--accent); }
-}
-@keyframes counterUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes breathe {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-@keyframes dataPulse {
-  0%, 100% { text-shadow: 0 0 8px var(--glow), 0 0 16px var(--glow-dim); }
-  50% { text-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow-dim); }
-}
-@keyframes borderRotate {
-  0% { --angle: 0deg; }
-  100% { --angle: 360deg; }
-}
-@keyframes fadeFlash {
-  0% { background: var(--glow-dim); }
-  100% { background: transparent; }
-}
-@keyframes typewriter {
-  from { width: 0; }
-  to { width: 100%; }
-}
-
-/* ── Sidebar ────────────────────────────────────────────────────────────── */
-
-#sidebar {
-  width: 88px;
-  background: rgba(10, 22, 40, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: 8px 6px;
-  gap: 2px;
-  flex-shrink: 0;
-  z-index: 100;
-  position: relative;
-}
-#sidebar::before {
-  content: '';
-  position: absolute;
-  top: 0; right: -1px; bottom: 0;
-  width: 1px;
-  background: linear-gradient(180deg, var(--glow), transparent 30%, transparent 70%, var(--accent2));
   z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95  0 0 0 0 0.92  0 0 0 0 0.87  0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  mix-blend-mode: overlay;
 }
 
-.logo {
-  text-align: center;
-  padding: 12px 4px 16px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 10px;
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border: 2px solid var(--paper);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
+
+::selection { background: var(--terracotta); color: var(--paper); }
+
+/* ── Masthead ────────────────────────────────────────────────────────────── */
+
+header.masthead {
+  padding: 28px 48px 20px;
+  border-bottom: 1px solid var(--rule);
   position: relative;
+  z-index: 3;
+  background: var(--paper);
 }
-.logo::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 10%;
-  width: 80%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--glow), transparent);
+
+.masthead-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
 }
-.logo-title {
-  font-family: var(--font-head);
-  font-weight: 800;
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.wordmark .mark {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  font-variation-settings: "SOFT" 80;
+  color: var(--ink);
+  line-height: 1;
+}
+.wordmark .mark em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--terracotta);
+}
+.wordmark .edition {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding-bottom: 4px;
+}
+
+.masthead-meta {
+  text-align: right;
+  font-family: var(--mono);
   font-size: 11px;
-  color: var(--accent);
-  letter-spacing: 0.12em;
-  text-shadow: 0 0 10px var(--glow), 0 0 30px var(--glow-dim);
+  color: var(--ink-muted);
   line-height: 1.5;
 }
-.logo-sub {
-  font-size: 8px;
-  color: var(--text-muted);
-  margin-top: 4px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.08em;
-}
-
-.nav-btn {
-  background: none;
-  border: 1px solid transparent;
-  color: var(--text-muted);
-  padding: 10px 4px;
-  border-radius: 6px;
-  cursor: pointer;
-  width: 100%;
-  text-align: center;
-  font-size: 9px;
-  font-family: var(--font-tc);
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  position: relative;
-}
-.nav-btn .icon { font-size: 20px; filter: grayscale(30%); transition: filter 0.3s; }
-.nav-btn:hover {
-  background: rgba(0, 212, 255, 0.05);
-  border-color: var(--border);
-  color: var(--text);
-}
-.nav-btn:hover .icon { filter: grayscale(0%); }
-.nav-btn.active {
-  background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(0,212,255,0.04));
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 700;
-  box-shadow: 0 0 20px var(--glow-dim), inset 0 0 12px var(--glow-micro);
-  text-shadow: 0 0 8px var(--glow);
-}
-.nav-btn.active .icon { filter: drop-shadow(0 0 4px var(--glow)); }
-.nav-btn.active::before {
-  content: '';
-  position: absolute;
-  left: -6px;
-  top: 25%;
-  height: 50%;
-  width: 2px;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--glow);
-  border-radius: 1px;
-}
-
-/* ── Main Layout ────────────────────────────────────────────────────────── */
-
-#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-#topbar {
-  background: rgba(10, 22, 40, 0.8);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--border);
-  padding: 8px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0;
-  position: relative;
-}
-#topbar::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, var(--glow), transparent 20%, transparent 80%, var(--accent2));
-}
-.topbar-left { display: flex; align-items: center; gap: 16px; }
-.topbar-title {
-  font-family: var(--font-head);
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--accent);
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 10px var(--glow-dim);
-}
-.topbar-title:hover { animation: glitch 0.3s ease; }
-.topbar-sub {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
-  margin-top: 2px;
-}
-
-.zone-pills { display: flex; gap: 4px; flex-wrap: wrap; }
-.zone-pill {
-  background: rgba(5, 8, 15, 0.6);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 2px 7px;
-  font-size: 10px;
-  font-family: var(--font-mono);
-  font-weight: 600;
+.masthead-meta .issue {
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
-  transition: all 0.3s;
 }
-.zone-pill.full { border-color: var(--red); color: var(--red); box-shadow: 0 0 6px rgba(255,51,102,0.2); }
-.zone-pill.busy { border-color: var(--amber); color: var(--amber); }
-.zone-pill.open { border-color: var(--green); color: var(--green); }
 
-#content { flex: 1; overflow-y: auto; padding: 16px 24px; }
+.tagline {
+  margin-top: 10px;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 15px;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+
+/* ── Main navigation (editorial horizontal) ──────────────────────────────── */
+
+nav.sections {
+  display: flex;
+  gap: 0;
+  padding: 0 48px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+nav.sections button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 16px 22px 14px 22px;
+  cursor: pointer;
+  color: var(--ink-muted);
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  transition: color 0.18s ease, border-color 0.18s ease;
+  position: relative;
+}
+nav.sections button .numeral {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-variation-settings: "SOFT" 100;
+}
+nav.sections button:hover {
+  color: var(--ink-soft);
+}
+nav.sections button.active {
+  color: var(--ink);
+  border-bottom-color: var(--terracotta);
+}
+nav.sections button.active .numeral {
+  color: var(--terracotta);
+}
+nav.sections .zone-strip {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+}
+.zone-pill {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 9px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink-muted);
+  background: transparent;
+  letter-spacing: 0.04em;
+}
+.zone-pill.open  { color: var(--moss); border-color: rgba(157, 189, 108, 0.4); }
+.zone-pill.busy  { color: var(--ochre); border-color: rgba(212, 160, 58, 0.4); }
+.zone-pill.full  { color: var(--brick); border-color: rgba(192, 88, 72, 0.5); background: var(--brick-soft); }
+
+/* ── Content area ────────────────────────────────────────────────────────── */
+
+main {
+  flex: 1;
+  padding: 32px 48px 64px;
+  position: relative;
+  z-index: 2;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
 .tab-page { display: none; }
-.tab-page.active { display: block; animation: slideIn 0.3s ease; }
+.tab-page.active { display: block; animation: pageIn 0.4s ease both; }
 
-/* ── Status Bar ─────────────────────────────────────────────────────────── */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-#statusbar {
-  background: rgba(10, 22, 40, 0.8);
-  border-top: 1px solid var(--border);
-  padding: 4px 24px;
+/* ── Status / footer strip ───────────────────────────────────────────────── */
+
+footer.status {
+  padding: 10px 48px;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-sunken);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-muted);
-  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
   position: relative;
+  z-index: 3;
 }
-#statusbar::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, var(--accent2), transparent 20%, transparent 80%, var(--glow));
-}
-.status-dot {
+.dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  margin-right: 6px;
-  vertical-align: middle;
+  margin-right: 8px;
+  vertical-align: 1px;
 }
-.status-dot.online {
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-  animation: pulse 2s infinite;
+.dot.online {
+  background: var(--moss);
+  box-shadow: 0 0 0 3px rgba(157, 189, 108, 0.18);
 }
-.status-dot.offline {
-  background: var(--red);
-  box-shadow: 0 0 6px var(--red);
-  animation: none;
+.dot.offline {
+  background: var(--brick);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   HUD CARD — the core visual component
+   Editorial blocks
    ══════════════════════════════════════════════════════════════════════════ */
 
-.card {
-  background: linear-gradient(135deg, rgba(13,31,60,0.9), rgba(10,22,40,0.95));
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 16px;
-  margin-bottom: 14px;
-  position: relative;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-/* HUD corner brackets */
-.card::before, .card::after {
-  content: '';
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-color: var(--accent);
-  border-style: solid;
-  transition: border-color 0.3s;
-  pointer-events: none;
-}
-.card::before {
-  top: -1px; left: -1px;
-  border-width: 1px 0 0 1px;
-}
-.card::after {
-  bottom: -1px; right: -1px;
-  border-width: 0 1px 1px 0;
-}
-.card:hover {
-  border-color: rgba(0, 212, 255, 0.4);
-  box-shadow: 0 0 20px var(--glow-micro), inset 0 0 30px var(--glow-micro);
-}
-.card:hover::before, .card:hover::after {
-  border-color: var(--glow);
-  filter: drop-shadow(0 0 3px var(--glow));
-}
-
-.card-title {
-  font-family: var(--font-head);
-  font-weight: 600;
-  font-size: 11px;
-  margin-bottom: 12px;
-  color: var(--text-bright);
-  letter-spacing: 0.06em;
+.eyebrow {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  text-transform: uppercase;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
 }
-.card-title:hover { animation: glitch 0.3s ease; }
-.card-title .tag {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  background: rgba(255, 107, 53, 0.15);
-  border: 1px solid var(--accent2);
-  padding: 1px 7px;
-  border-radius: 2px;
-  color: var(--accent2);
+.eyebrow h2 {
+  font-family: var(--display);
   font-weight: 500;
-  letter-spacing: 0.04em;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 60;
 }
-
-/* ── KPI HUD Panels ─────────────────────────────────────────────────────── */
-
-.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-
-.kpi {
-  background: linear-gradient(135deg, rgba(13,31,60,0.9), rgba(10,22,40,0.95));
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 14px 16px;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s;
+.eyebrow h2 em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-soft);
 }
-.kpi::before, .kpi::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: var(--accent);
-  border-style: solid;
-  pointer-events: none;
-  transition: all 0.3s;
-}
-.kpi::before {
-  top: -1px; left: -1px;
-  border-width: 1px 0 0 1px;
-}
-.kpi::after {
-  bottom: -1px; right: -1px;
-  border-width: 0 1px 1px 0;
-}
-.kpi:hover {
-  border-color: rgba(0, 212, 255, 0.3);
-  box-shadow: 0 0 20px var(--glow-micro);
-}
-.kpi-label {
+.eyebrow .kicker {
+  font-family: var(--mono);
   font-size: 10px;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
+  color: var(--ink-muted);
   text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-left: auto;
 }
-.kpi-value {
-  font-family: var(--font-head);
-  font-size: 32px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  animation: counterUp 0.5s ease;
-}
-.kpi-value.green { color: var(--green); text-shadow: 0 0 15px rgba(0,255,136,0.4), 0 0 30px rgba(0,255,136,0.15); }
-.kpi-value.amber { color: var(--amber); text-shadow: 0 0 15px rgba(255,170,0,0.4), 0 0 30px rgba(255,170,0,0.15); }
-.kpi-value.blue  { color: var(--accent); text-shadow: 0 0 15px var(--glow-dim), 0 0 30px var(--glow-micro); }
-.kpi-value.red   { color: var(--red); text-shadow: 0 0 15px rgba(255,51,102,0.4), 0 0 30px rgba(255,51,102,0.15); }
 
-/* ── Zone Grid ──────────────────────────────────────────────────────────── */
+/* ── Figure: numbers, editorial-style ────────────────────────────────────── */
 
-.zone-grid {
+.figures {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 36px;
 }
-
-.zone-card {
-  background: linear-gradient(160deg, rgba(13,31,60,0.85), rgba(10,22,40,0.95));
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 14px;
+.figure {
+  padding: 22px 24px 24px;
+  border-right: 1px solid var(--rule);
   position: relative;
-  transition: all 0.3s;
-  overflow: hidden;
 }
-.zone-card::before, .zone-card::after {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: var(--border);
-  border-style: solid;
-  pointer-events: none;
-  transition: all 0.3s;
-}
-.zone-card::before {
-  top: -1px; left: -1px;
-  border-width: 1px 0 0 1px;
-}
-.zone-card::after {
-  bottom: -1px; right: -1px;
-  border-width: 0 1px 1px 0;
-}
-.zone-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 0 24px var(--glow-dim), inset 0 0 20px var(--glow-micro);
-}
-.zone-card:hover::before, .zone-card:hover::after { border-color: var(--glow); }
-.zone-card .zone-bg-icon {
-  position: absolute;
-  right: 10px; bottom: 8px;
-  font-size: 36px;
-  opacity: 0.06;
-  pointer-events: none;
-}
-.zone-header {
+.figure:last-child { border-right: none; }
+.figure-caption {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
 }
-.zone-id {
-  font-family: var(--font-head);
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--accent);
-  text-shadow: 0 0 12px var(--glow-dim);
-  letter-spacing: 0.05em;
-}
-.zone-name {
+.figure-caption .zh {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  font-family: var(--body);
   font-size: 11px;
-  color: var(--text-muted);
-  font-family: var(--font-tc);
-  margin-left: 6px;
 }
-.zone-status {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.figure-value {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 68px;
+  line-height: 0.92;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-variation-settings: "SOFT" 30;
 }
-.zone-status.open { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
-.zone-status.busy { background: rgba(255,170,0,0.1); color: var(--amber); border: 1px solid rgba(255,170,0,0.25); }
-.zone-status.full { background: rgba(255,51,102,0.1); color: var(--red); border: 1px solid rgba(255,51,102,0.25); }
-
-.zone-alloc {
-  font-size: 11px;
-  color: var(--text);
-  margin-bottom: 8px;
-  min-height: 18px;
-  font-family: var(--font-tc);
-}
-.zone-alloc .alloc-tag {
-  display: inline-block;
-  background: rgba(0,212,255,0.06);
-  border: 1px solid rgba(0,212,255,0.15);
-  border-radius: 2px;
-  padding: 1px 6px;
-  margin-right: 4px;
-  margin-bottom: 2px;
-  font-size: 10px;
-  font-family: var(--font-mono);
-}
-
-.unit-bar-wrap {
-  background: rgba(5,8,15,0.6);
-  border: 1px solid rgba(26,58,106,0.3);
-  border-radius: 1px;
-  height: 6px;
-  margin-bottom: 8px;
-  overflow: hidden;
-}
-.unit-bar {
-  height: 100%;
-  border-radius: 1px;
-  transition: width 0.5s ease, background 0.5s;
-  position: relative;
-}
-.unit-bar::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-  animation: shimmer 2s infinite;
-}
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.zone-stats {
-  display: flex;
-  gap: 12px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-muted);
+.figure-value.accent { color: var(--terracotta); }
+.figure-value.moss   { color: var(--moss); }
+.figure-value.ochre  { color: var(--ochre); }
+.figure-value.brick  { color: var(--brick); }
+.figure-note {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
-.zone-stats span { display: flex; align-items: center; gap: 3px; }
 
-/* ── Demo Console ───────────────────────────────────────────────────────── */
+/* ── Zone table — replaces the generic grid of cards ─────────────────────── */
+
+.zone-register {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 40px;
+  font-size: 13px;
+}
+.zone-register thead th {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.zone-register thead th.num { text-align: right; }
+.zone-register tbody tr {
+  border-bottom: 1px solid var(--rule-soft);
+  transition: background 0.15s ease;
+}
+.zone-register tbody tr:hover { background: var(--paper-raised); }
+.zone-register tbody td {
+  padding: 14px;
+  vertical-align: middle;
+  color: var(--ink);
+}
+.zone-register td.num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.z-label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.z-label .id {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 22px;
+  font-style: italic;
+  color: var(--terracotta);
+  letter-spacing: -0.02em;
+  font-variation-settings: "SOFT" 80;
+}
+.z-label .name {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.z-sports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.z-sport {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper-raised);
+  white-space: nowrap;
+}
+
+.z-bar {
+  position: relative;
+  width: 100%;
+  min-width: 120px;
+  height: 4px;
+  background: var(--rule-soft);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.z-bar > span {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  border-radius: 1px;
+  transition: width 0.5s cubic-bezier(.2,.7,.2,1);
+}
+
+.z-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.z-status::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.z-status.open::before  { background: var(--moss); }
+.z-status.busy::before  { background: var(--ochre); }
+.z-status.full::before  { background: var(--brick); }
+.z-status.open  { color: var(--moss); }
+.z-status.busy  { color: var(--ochre); }
+.z-status.full  { color: var(--brick); }
+
+/* ── Area footnote ───────────────────────────────────────────────────────── */
+
+.footnote {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 13px;
+  color: var(--ink-muted);
+  padding: 16px 0;
+  border-top: 1px solid var(--rule-soft);
+  margin-bottom: 40px;
+}
+.footnote::before {
+  content: '§ ';
+  font-style: normal;
+  color: var(--terracotta);
+  margin-right: 2px;
+}
+
+/* ── Demo / Console ──────────────────────────────────────────────────────── */
+
+.console-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 18px;
+}
+.console-head .lead {
+  font-family: var(--display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-muted);
+  max-width: 520px;
+  line-height: 1.5;
+}
 
 .demo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 10px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
 }
 
-.demo-zone {
-  background: linear-gradient(160deg, rgba(13,31,60,0.8), rgba(10,22,40,0.9));
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 12px;
-  position: relative;
+.demo-cell {
+  padding: 18px 20px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  transition: background 0.2s ease;
 }
-.demo-zone::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: -1px;
-  width: 10px; height: 10px;
-  border-top: 1px solid var(--accent);
-  border-left: 1px solid var(--accent);
-  pointer-events: none;
+.demo-cell:hover { background: var(--paper-raised); }
+
+.demo-cell-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
 }
-.demo-zone-header {
-  font-family: var(--font-head);
-  font-weight: 700;
-  font-size: 11px;
-  color: var(--accent);
+.demo-cell-head .zid {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--terracotta);
+}
+.demo-cell-head .zname {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-left: 8px;
+}
+.demo-cell-head .zcourts {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.preset-row, .court-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+/* ── Sessions / Queue lists ──────────────────────────────────────────────── */
+
+.two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 8px;
+}
+
+.list-block h3 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--ink);
   margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.list-block h3 em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-muted);
+}
+.list-block h3 .count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  letter-spacing: 0.04em;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 13px;
+}
+.row:last-child { border-bottom: none; }
+.row .left   { display: flex; align-items: baseline; gap: 10px; }
+.row .zid    { font-family: var(--display); font-style: italic; color: var(--terracotta); font-size: 14px; }
+.row .court  { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); }
+.row .name   { color: var(--ink); }
+.row .time   {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.row .time.warn { color: var(--ochre); }
+.row .time.late { color: var(--brick); }
+.row .badge {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  margin-left: 10px;
 }
 
-.preset-row { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
-.court-row { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 8px; }
+.empty {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--ink-faint);
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 13px;
+}
 
-/* ── Buttons ────────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   Buttons — flat, typographic, warm
+   ══════════════════════════════════════════════════════════════════════════ */
 
 .btn {
-  border: none;
-  border-radius: 2px;
-  padding: 7px 14px;
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 12.5px;
+  padding: 8px 16px;
+  border: 1px solid var(--rule);
+  background: var(--paper-raised);
+  color: var(--ink);
   cursor: pointer;
-  font-family: var(--font-tc);
-  transition: all 0.25s;
+  border-radius: 2px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  position: relative;
-  text-transform: none;
+  gap: 6px;
+  letter-spacing: 0.01em;
 }
-.btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
-.btn:active { transform: scale(0.97) translateY(0); }
-.btn:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(40%); transform: none; }
+.btn:hover {
+  background: var(--surface);
+  border-color: var(--ink-faint);
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.btn-accent {
-  background: linear-gradient(135deg, var(--accent), #0098cc);
-  color: #000;
-  box-shadow: 0 0 12px var(--glow-dim);
+.btn-primary {
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+  color: #1a1916;
+  font-weight: 600;
 }
-.btn-accent:hover { box-shadow: 0 0 20px var(--glow-dim); }
-.btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
-.btn-green { background: linear-gradient(135deg, var(--green), #00cc6a); color: #000; }
-.btn-red { background: linear-gradient(135deg, var(--red), #cc0033); color: #fff; }
-.btn-muted { background: rgba(26,58,106,0.3); color: var(--text); border: 1px solid var(--border); }
-.btn-ghost {
+.btn-primary:hover {
+  background: var(--terracotta-deep);
+  border-color: var(--terracotta-deep);
+  color: #fff;
+}
+.btn-quiet {
   background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
+  border-color: var(--rule);
+  color: var(--ink-soft);
 }
-.btn-ghost:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 8px var(--glow-micro);
+.btn-quiet:hover {
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+  background: var(--terracotta-soft);
 }
-.btn-sm { padding: 5px 10px; font-size: 10px; }
-.btn-xs { padding: 3px 7px; font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.02em; }
+.btn-moss  { background: transparent; border-color: rgba(157, 189, 108, 0.5); color: var(--moss); }
+.btn-moss:hover  { background: var(--moss-soft); border-color: var(--moss); }
+.btn-brick { background: transparent; border-color: rgba(192, 88, 72, 0.5); color: var(--brick); }
+.btn-brick:hover { background: var(--brick-soft); border-color: var(--brick); }
+.btn-ochre { background: transparent; border-color: rgba(212, 160, 58, 0.5); color: var(--ochre); }
+.btn-ochre:hover { background: var(--ochre-soft); border-color: var(--ochre); }
 
-.btn-neon {
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-xs {
+  padding: 3px 8px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.btn-danger-soft {
+  padding: 9px 22px;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 13px;
   background: transparent;
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  box-shadow: 0 0 8px var(--glow-dim), inset 0 0 8px var(--glow-micro);
+  border: 1px solid var(--brick);
+  color: var(--brick);
+  cursor: pointer;
+  border-radius: 2px;
+  letter-spacing: 0.01em;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.btn-neon:hover {
-  background: rgba(0, 212, 255, 0.1);
-  box-shadow: 0 0 16px var(--glow-dim), inset 0 0 12px var(--glow-micro);
+.btn-danger-soft:hover {
+  background: var(--brick);
+  color: var(--paper);
 }
 
-/* ── Inputs ──────────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   Inputs & forms
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: block;
+  margin-bottom: 6px;
+}
 
 .inp {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
+  font-family: var(--body);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper-sunken);
+  border: 1px solid var(--rule);
   border-radius: 2px;
-  background: rgba(5, 8, 15, 0.8);
-  border: 1px solid var(--border);
-  color: var(--text-bright);
-  font-size: 12px;
-  font-family: var(--font-mono);
   outline: none;
-  transition: all 0.3s;
+  transition: border-color 0.15s ease;
 }
-.inp:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 12px var(--glow-dim), inset 0 0 8px var(--glow-micro);
-}
-.inp::placeholder { color: var(--text-muted); }
+.inp:focus { border-color: var(--terracotta); }
+.inp::placeholder { color: var(--ink-faint); }
 
 select.inp {
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a6a8a' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23857f6d' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 28px;
+  background-position: right 12px center;
+  padding-right: 30px;
 }
 
-.label {
-  font-size: 9px;
-  color: var(--text-muted);
-  display: block;
-  margin-bottom: 4px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+/* ══════════════════════════════════════════════════════════════════════════
+   Mode toggle — segmented
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  background: var(--paper-raised);
+}
+.segmented button {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  padding: 8px 18px;
+  font-family: var(--body);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-right: 1px solid var(--rule);
+}
+.segmented button:last-child { border-right: none; }
+.segmented button:hover { color: var(--ink-soft); }
+.segmented button.active {
+  background: var(--terracotta);
+  color: var(--paper);
+  font-weight: 500;
 }
 
-/* ── Layouts ─────────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   SmartGate — multi-step wizard: identify → sport → play
+   ══════════════════════════════════════════════════════════════════════════ */
 
-.cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* ── Progress rail ────────────────────────────────────────────────────── */
 
-/* ── Session / Queue lists ───────────────────────────────────────────────── */
+.wiz-progress {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  max-width: 720px;
+  margin: 8px auto 40px;
+  padding: 0;
+}
+.wiz-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.wiz-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+  background: var(--paper);
+  transition: all 0.3s ease;
+  font-variant-numeric: tabular-nums;
+}
+.wiz-lbl {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.wiz-lbl .zh {
+  font-size: 13px;
+  color: var(--ink-muted);
+  transition: color 0.3s ease;
+}
+.wiz-lbl .en {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-weight: 300;
+}
+.wiz-step.active .wiz-num {
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+  color: var(--paper);
+  font-weight: 600;
+  box-shadow: 0 0 0 6px var(--terracotta-soft);
+}
+.wiz-step.active .wiz-lbl .zh { color: var(--ink); font-weight: 500; }
+.wiz-step.done .wiz-num {
+  background: var(--paper);
+  border-color: var(--moss);
+  color: var(--moss);
+}
+.wiz-step.done .wiz-lbl .zh { color: var(--ink-soft); }
+.wiz-line {
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+  margin: 0 18px;
+  min-width: 40px;
+}
 
-.list-item {
+/* ── Views ────────────────────────────────────────────────────────────── */
+
+.wiz-view {
+  display: none;
+  animation: wizIn 0.32s cubic-bezier(.2,.7,.2,1) both;
+}
+.wiz-view.active { display: block; }
+@keyframes wizIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.wiz-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.wiz-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 60;
+  margin-bottom: 8px;
+  line-height: 1.1;
+}
+.wiz-title em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-soft);
+  font-size: 24px;
+  margin-left: 10px;
+}
+.wiz-lead {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 16px;
+  color: var(--ink-muted);
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.wiz-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 7px 10px;
-  border-bottom: 1px solid rgba(26,58,106,0.25);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  transition: background 0.2s;
+  gap: 14px;
+  max-width: 860px;
+  margin: 28px auto 0;
 }
-.list-item:hover { background: rgba(0,212,255,0.03); }
-.list-item:last-child { border-bottom: none; }
+.wiz-actions-center { justify-content: center; gap: 20px; }
 
-.empty-state {
-  color: var(--text-muted);
-  font-size: 11px;
-  padding: 20px;
-  text-align: center;
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
+.btn-lg {
+  padding: 12px 26px;
+  font-size: 14px;
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-muted);
+}
+.btn-ghost:hover {
+  color: var(--ink);
+  border-color: var(--rule);
 }
 
-/* ── SmartGate ───────────────────────────────────────────────────────────── */
+/* ── Camera stage ─────────────────────────────────────────────────────── */
 
-.camera-box {
+.gate-stage {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.camera-idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+.camera-idle .ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px dashed var(--rule);
   position: relative;
-  width: 100%;
-  max-width: 480px;
-  aspect-ratio: 4/3;
-  background: #000;
-  border-radius: 2px;
-  overflow: hidden;
-  border: 1px solid var(--border);
 }
-.camera-box::before, .camera-box::after {
+.camera-idle .ring::before,
+.camera-idle .ring::after {
   content: '';
   position: absolute;
-  width: 20px; height: 20px;
-  border-color: var(--accent);
-  border-style: solid;
-  z-index: 5;
-  pointer-events: none;
+  inset: -14px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 50%;
   opacity: 0.6;
 }
-.camera-box::before { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
-.camera-box::after { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
-.camera-box video, .camera-box canvas {
+.camera-idle .ring::after { inset: -30px; opacity: 0.3; }
+.camera-idle .hint {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 14px;
+}
+/* Hide idle overlay once video is active */
+.camera-hero video[srcObject] ~ .camera-idle,
+.camera-hero.live .camera-idle { display: none; }
+
+.scan-status {
+  margin-top: 18px;
+  min-height: 30px;
+  text-align: center;
+  font-size: 13px;
+}
+.scan-status .status-pill {
+  font-size: 11.5px;
+  padding: 5px 14px;
+  display: inline-block;
+}
+
+/* ── Register form ────────────────────────────────────────────────────── */
+
+.wiz-form {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.wiz-field { display: flex; flex-direction: column; gap: 6px; }
+.inp-lg {
+  padding: 14px 16px;
+  font-size: 16px;
+}
+
+/* ── Welcome card ─────────────────────────────────────────────────────── */
+
+.welcome-card {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 36px 32px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  text-align: center;
+  position: relative;
+}
+.welcome-card::before,
+.welcome-card::after {
+  content: '';
   position: absolute;
-  top: 0; left: 0;
+  width: 18px; height: 18px;
+  border-color: var(--terracotta);
+  border-style: solid;
+  pointer-events: none;
+}
+.welcome-card::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.welcome-card::after  { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+.welcome-name {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 44px;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+.welcome-meta {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+.welcome-check {
+  margin-top: 18px;
+  display: inline-block;
+  padding: 4px 14px;
+  background: var(--moss-soft);
+  color: var(--moss);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  border-radius: 2px;
+  border: 1px solid rgba(157, 189, 108, 0.3);
+}
+
+/* Daily quota strip inside welcome card */
+.quota-strip {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule-soft);
+  text-align: left;
+}
+.quota-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.quota-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.quota-val {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.quota-val em {
+  font-style: italic;
+  font-weight: 300;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-left: 4px;
+}
+.quota-bar {
+  height: 4px;
+  background: var(--rule-soft);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.quota-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--moss);
+  transition: width 0.6s cubic-bezier(.2,.7,.2,1), background 0.3s;
+}
+.quota-bar.low > span    { background: var(--ochre); }
+.quota-bar.empty > span  { background: var(--brick); }
+.quota-hint {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+.quota-hint.warn { color: var(--ochre); font-style: normal; font-family: var(--body); }
+.quota-hint.stop { color: var(--brick); font-style: normal; font-family: var(--body); }
+
+/* Countdown inside outcome card */
+.outcome-countdown {
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.outcome-extend .btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.extend-hint {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* Sport-picker banner when quota runs short */
+.quota-banner {
+  max-width: 760px;
+  margin: 0 auto 18px;
+  padding: 12px 18px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--ochre);
+  background: var(--paper-raised);
+  font-size: 13px;
+  color: var(--ink-soft);
+  border-radius: 2px;
+}
+.quota-banner.stop {
+  border-left-color: var(--brick);
+  background: var(--brick-soft);
+  color: var(--brick);
+}
+
+/* ── Sport picker cards ───────────────────────────────────────────────── */
+
+.sport-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+.sport-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 20px 20px 18px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+  font-family: var(--body);
+}
+.sport-card .sport-icon {
+  font-size: 38px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.sport-card .sport-name {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.sport-card .sport-en {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: -4px;
+}
+.sport-card .sport-verdict {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+.sport-card .sport-verdict .big {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 17px;
+  font-style: normal;
+  letter-spacing: -0.01em;
+}
+.sport-card.ready .sport-verdict .big   { color: var(--moss); }
+.sport-card.recon .sport-verdict .big   { color: var(--ochre); }
+.sport-card.queue .sport-verdict .big   { color: var(--brick); }
+
+.sport-card:hover:not(.disabled) {
+  border-color: var(--terracotta);
+  transform: translateY(-2px);
+  background: var(--paper);
+}
+.sport-card:hover:not(.disabled) .sport-name { color: var(--terracotta); }
+
+.sport-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sport-ribbon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+.sport-ribbon.ready {
+  background: var(--moss-soft);
+  color: var(--moss);
+  border: 1px solid rgba(157, 189, 108, 0.3);
+}
+.sport-ribbon.recon {
+  background: var(--ochre-soft);
+  color: var(--ochre);
+  border: 1px solid rgba(212, 160, 58, 0.3);
+}
+.sport-ribbon.queue {
+  background: var(--brick-soft);
+  color: var(--brick);
+  border: 1px solid rgba(192, 88, 72, 0.3);
+}
+
+/* ── Outcome panel ────────────────────────────────────────────────────── */
+
+.outcome-card {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 40px 32px 36px;
+  text-align: center;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  position: relative;
+}
+.outcome-card::before,
+.outcome-card::after {
+  content: '';
+  position: absolute;
+  width: 22px; height: 22px;
+  border-style: solid;
+  pointer-events: none;
+}
+.outcome-card::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.outcome-card::after  { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+.outcome-card.win::before,
+.outcome-card.win::after { border-color: var(--moss); }
+.outcome-card.reconfig::before,
+.outcome-card.reconfig::after { border-color: var(--ochre); }
+.outcome-card.queued::before,
+.outcome-card.queued::after { border-color: var(--terracotta); }
+
+.outcome-kicker {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.outcome-big {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 96px;
+  line-height: 0.95;
+  color: var(--moss);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  margin-bottom: 6px;
+  font-variation-settings: "SOFT" 20;
+}
+.outcome-big.queue { color: var(--terracotta); }
+.outcome-caption {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 14px;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 24px;
+}
+
+.outcome-assignment {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 22px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper-sunken);
+  margin-bottom: 18px;
+}
+.outcome-assignment .zone {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 32px;
+  color: var(--terracotta);
+  letter-spacing: -0.02em;
+}
+.outcome-assignment .court {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.outcome-assignment .sport {
+  font-family: var(--display);
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.outcome-notice {
+  margin-top: 16px;
+  padding: 10px 16px;
+  background: var(--ochre-soft);
+  color: var(--ochre);
+  border: 1px solid rgba(212, 160, 58, 0.3);
+  border-radius: 2px;
+  font-size: 12px;
+  font-family: var(--body);
+}
+
+.outcome-extend {
+  margin-top: 20px;
+}
+
+/* ── Responsive wizard ───────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .wiz-title { font-size: 28px; }
+  .wiz-title em { font-size: 18px; display: block; margin: 4px 0 0; }
+  .wiz-progress { flex-wrap: wrap; gap: 8px; }
+  .wiz-line { min-width: 20px; margin: 0 8px; }
+  .outcome-big { font-size: 72px; }
+  .welcome-name { font-size: 32px; }
+}
+
+.camera-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--paper-sunken);
+  border: 1px solid var(--rule);
+  overflow: hidden;
+  border-radius: 3px;
+}
+.camera-hero video,
+.camera-hero canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
-/* ── SmartCount ──────────────────────────────────────────────────────────── */
-
-.count-display {
-  font-family: var(--font-head);
-  font-size: 72px;
-  font-weight: 900;
-  text-align: center;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  text-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow-dim);
-  animation: dataPulse 3s infinite;
+/* Subtle corner marks — restrained. */
+.camera-hero::before,
+.camera-hero::after {
+  content: '';
+  position: absolute;
+  width: 22px; height: 22px;
+  border-color: var(--terracotta);
+  border-style: solid;
+  pointer-events: none;
+  opacity: 0.75;
+}
+.camera-hero::before {
+  top: 10px; left: 10px;
+  border-width: 1px 0 0 1px;
+}
+.camera-hero::after {
+  bottom: 10px; right: 10px;
+  border-width: 0 1px 1px 0;
 }
 
-/* ── Device Grid ─────────────────────────────────────────────────────────── */
+.camera-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 2px 14px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid var(--rule-soft);
+  margin-bottom: 16px;
+}
+.camera-caption .zh {
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
+.camera-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+/* Gate result / registration / zone-select panels */
+.gate-panel {
+  margin: 36px auto 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  max-width: 860px;
+}
+.gate-panel h3 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 19px;
+  margin-bottom: 14px;
+  color: var(--ink);
+}
+.gate-panel h3 em { font-style: italic; color: var(--ink-soft); font-weight: 300; }
+
+.status-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.status-pill.match    { background: var(--moss-soft); color: var(--moss);     border: 1px solid rgba(157, 189, 108, 0.4); }
+.status-pill.newface  { background: var(--ochre-soft); color: var(--ochre);   border: 1px solid rgba(212, 160, 58, 0.4); }
+.status-pill.noface   { background: var(--brick-soft); color: var(--brick);   border: 1px solid rgba(192, 88, 72, 0.4); }
+.status-pill.scanning { background: var(--terracotta-soft); color: var(--terracotta); border: 1px solid rgba(217, 107, 60, 0.4); }
+
+.gate-zone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+.gate-zone-tile {
+  padding: 14px 10px;
+  border: 1px solid var(--rule);
+  background: var(--paper-raised);
+  border-radius: 2px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.gate-zone-tile:hover {
+  border-color: var(--terracotta);
+  background: var(--terracotta-soft);
+}
+.gate-zone-tile .id {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--terracotta);
+}
+.gate-zone-tile .sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+.gate-zone-tile .free { color: var(--moss); font-size: 11px; margin-top: 6px; font-family: var(--mono); }
+.gate-zone-tile .full { color: var(--brick); }
+
+.gate-session-display {
+  text-align: center;
+  padding: 20px 0;
+}
+.gate-session-display .big {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 82px;
+  line-height: 0.95;
+  color: var(--moss);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-variation-settings: "SOFT" 20;
+}
+.gate-session-display .big.queue { color: var(--ochre); }
+.gate-session-display .lbl {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-top: 8px;
+}
+.gate-session-display .meta {
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SmartCount
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.count-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 40px;
+}
+
+.count-display {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 112px;
+  line-height: 1;
+  color: var(--terracotta);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  font-variation-settings: "SOFT" 20;
+}
+
+.count-camera-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--paper-sunken);
+  border: 1px solid var(--rule);
+  overflow: hidden;
+  border-radius: 3px;
+}
+.count-camera-box video,
+.count-camera-box canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+
+.count-panel {
+  padding: 18px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper-raised);
+  margin-bottom: 18px;
+}
+.count-panel h4 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: var(--ink);
+}
+.count-panel h4 em { font-style: italic; color: var(--ink-soft); font-weight: 300; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SmartControl — every zone shows every device (multifunction box)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.control-intro {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 14px;
+  color: var(--ink-muted);
+  max-width: 680px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
 
 .device-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
 }
 
 .device-zone {
-  background: linear-gradient(160deg, rgba(13,31,60,0.8), rgba(10,22,40,0.9));
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 14px;
-  position: relative;
+  padding: 20px 22px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
 }
-.device-zone::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: -1px;
-  width: 12px; height: 12px;
-  border-top: 1px solid var(--accent);
-  border-left: 1px solid var(--accent);
-  pointer-events: none;
+
+.device-zone-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule-soft);
 }
-.device-zone-title {
-  font-family: var(--font-head);
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--accent);
-  margin-bottom: 10px;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 8px var(--glow-dim);
+.device-zone-head .id {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--terracotta);
+}
+.device-zone-head .name {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-left: 6px;
+}
+.device-zone-head .badge {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .device-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
   align-items: center;
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(26,58,106,0.2);
-  font-size: 11px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule-soft);
 }
 .device-row:last-child { border-bottom: none; }
-.device-label { display: flex; align-items: center; gap: 6px; font-family: var(--font-tc); }
-.device-status {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 2px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.device-status.on, .device-status.open, .device-status.deployed, .device-status.setup {
-  background: rgba(0,255,136,0.1);
-  color: var(--green);
-  border: 1px solid rgba(0,255,136,0.2);
-}
-.device-status.off, .device-status.locked, .device-status.retracted, .device-status.removed, .device-status.fold {
-  background: rgba(255,51,102,0.1);
-  color: var(--red);
-  border: 1px solid rgba(255,51,102,0.2);
-}
-.device-status.flash {
-  background: rgba(255,170,0,0.1);
-  color: var(--amber);
-  border: 1px solid rgba(255,170,0,0.2);
-  animation: pulse 0.5s infinite;
-}
-.device-status.na {
-  background: rgba(26,58,106,0.2);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-.device-btns { display: flex; gap: 3px; }
 
-/* ── Alert items ─────────────────────────────────────────────────────────── */
+.device-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.device-name .dname {
+  font-size: 13px;
+  color: var(--ink);
+}
+.device-name .dhint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.device-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.device-state {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+.device-state.on, .device-state.open, .device-state.deployed, .device-state.setup {
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+.device-state.off, .device-state.locked, .device-state.retracted, .device-state.removed, .device-state.fold {
+  background: var(--brick-soft);
+  color: var(--brick);
+}
+.device-state.flash {
+  background: var(--ochre-soft);
+  color: var(--ochre);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AlertEngine
+   ══════════════════════════════════════════════════════════════════════════ */
 
 .alert-item {
-  padding: 10px 14px;
-  border-left: 2px solid var(--border);
-  margin-bottom: 6px;
-  background: rgba(5, 8, 15, 0.6);
-  border-radius: 0 2px 2px 0;
-  font-size: 11px;
-  transition: background 0.2s;
+  padding: 12px 16px;
+  border-left: 3px solid var(--rule);
+  margin-bottom: 8px;
+  background: var(--paper-raised);
+  font-size: 13px;
 }
-.alert-item:hover { background: rgba(0, 212, 255, 0.03); }
-.alert-item.critical { border-left-color: var(--red); }
-.alert-item.warning { border-left-color: var(--amber); }
-.alert-item.info { border-left-color: var(--accent); }
+.alert-item.critical { border-left-color: var(--brick); }
+.alert-item.warning  { border-left-color: var(--ochre); }
+.alert-item.info     { border-left-color: var(--terracotta); }
+
+.alert-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.alert-sev {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: lowercase;
+}
+.alert-sev.critical { color: var(--brick); }
+.alert-sev.warning  { color: var(--ochre); }
+.alert-sev.info     { color: var(--terracotta); }
 .alert-time {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Mode toggle ─────────────────────────────────────────────────────────── */
-
-.mode-toggle {
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-.mode-toggle button {
-  background: rgba(5,8,15,0.6);
-  border: none;
-  color: var(--text-muted);
-  padding: 6px 16px;
-  font-size: 11px;
-  font-family: var(--font-tc);
-  cursor: pointer;
-  transition: all 0.3s;
-  letter-spacing: 0.02em;
-}
-.mode-toggle button.active {
-  background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05));
-  color: var(--accent);
-  font-weight: 700;
-  box-shadow: inset 0 0 12px var(--glow-micro);
-}
-.mode-toggle button:hover:not(.active) {
-  background: rgba(0, 212, 255, 0.04);
-}
-
-/* ── Info box ────────────────────────────────────────────────────────────── */
-
-.info-box {
-  background: rgba(5,8,15,0.5);
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 10px 14px;
-  font-size: 10px;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  margin-bottom: 14px;
-  position: relative;
-  letter-spacing: 0.02em;
-}
-.info-box::before {
-  content: '[ ';
-  color: var(--accent);
-}
-.info-box::after {
-  content: ' ]';
-  color: var(--accent);
-}
-
-/* ── Section Divider ─────────────────────────────────────────────────────── */
-
-.section-label {
-  font-family: var(--font-head);
-  font-weight: 600;
-  font-size: 11px;
-  color: var(--text-bright);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.section-label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, var(--border), transparent);
-}
-
-/* ── Global Reset Button ─────────────────────────────────────────────────── */
-
-.btn-danger-lg {
-  background: linear-gradient(135deg, rgba(255,51,102,0.15), rgba(255,51,102,0.05));
-  color: var(--red);
-  border: 1px solid var(--red);
-  padding: 10px 24px;
-  font-family: var(--font-head);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-transform: uppercase;
-}
-.btn-danger-lg:hover {
-  background: linear-gradient(135deg, rgba(255,51,102,0.25), rgba(255,51,102,0.1));
-  box-shadow: 0 0 20px rgba(255,51,102,0.2);
-}
-
-/* ── Responsive ──────────────────────────────────────────────────────────── */
-
-@media (max-width: 900px) {
-  .kpi-row { grid-template-columns: repeat(2, 1fr); }
-  .cols-2 { grid-template-columns: 1fr; }
-  #sidebar { width: 64px; }
-  .nav-btn { font-size: 8px; padding: 8px 2px; }
-  .nav-btn .icon { font-size: 18px; }
-  .logo-title { font-size: 9px; }
-  #content { padding: 12px 14px; }
-}
-@media (max-width: 600px) {
-  .kpi-row { grid-template-columns: 1fr 1fr; }
-  .zone-grid { grid-template-columns: 1fr; }
-  .demo-grid { grid-template-columns: 1fr; }
-  .device-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Notification toast ──────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   Toast
+   ══════════════════════════════════════════════════════════════════════════ */
 
 .toast {
   position: fixed;
-  bottom: 60px;
-  right: 24px;
-  background: linear-gradient(135deg, rgba(13,31,60,0.95), rgba(10,22,40,0.98));
-  border: 1px solid var(--accent);
+  bottom: 48px;
+  right: 32px;
+  background: var(--paper-raised);
+  border: 1px solid var(--terracotta);
+  border-left-width: 3px;
+  padding: 12px 18px;
+  font-family: var(--body);
+  font-size: 13px;
+  color: var(--ink);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
   border-radius: 2px;
-  padding: 12px 20px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-bright);
-  box-shadow: 0 0 24px var(--glow-dim);
-  z-index: 10000;
-  animation: slideIn 0.3s ease;
+  animation: toastIn 0.3s ease;
   max-width: 360px;
 }
-.toast::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: -1px;
-  width: 8px; height: 8px;
-  border-top: 1px solid var(--glow);
-  border-left: 1px solid var(--glow);
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Responsive
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1100px) {
+  .figures { grid-template-columns: repeat(2, 1fr); }
+  .figure:nth-child(2) { border-right: none; }
+  .figure:nth-child(1), .figure:nth-child(2) { border-bottom: 1px solid var(--rule); }
+  .two-cols, .count-grid { grid-template-columns: 1fr; gap: 28px; }
+}
+@media (max-width: 720px) {
+  header.masthead, nav.sections, main, footer.status { padding-left: 20px; padding-right: 20px; }
+  .masthead-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .masthead-meta { text-align: left; }
+  .figure-value { font-size: 52px; }
+  nav.sections { overflow-x: auto; }
+  nav.sections .zone-strip { display: none; }
 }
 </style>
 </head>
 <body>
 
-<!-- ═════════════════════════════════════════════════════════════════════════════
-     SIDEBAR
-     ═════════════════════════════════════════════════════════════════════════════ -->
-
-<nav id="sidebar">
-  <div class="logo">
-    <div class="logo-title">BRIDGE<br>SPACE</div>
-    <div class="logo-sub">CTRL v2.1</div>
+<!-- Masthead -->
+<header class="masthead">
+  <div class="masthead-row">
+    <div class="wordmark">
+      <span class="mark">Bridge<em>space</em></span>
+      <span class="edition">Sect. 007 · Under-bridge</span>
+    </div>
+    <div class="masthead-meta">
+      <div class="issue" id="todayDate">—</div>
+      <div>社區運動樞紐 · 橋底自治運動空間</div>
+    </div>
   </div>
-  <button class="nav-btn active" onclick="switchTab('dashboard')">
-    <span class="icon">📊</span>主控大廳
+  <div class="tagline">A small register of courts, faces, and the fold of nets — kept in honest order.</div>
+</header>
+
+<!-- Section nav -->
+<nav class="sections" id="sectionNav">
+  <button class="active" onclick="switchTab('dashboard')">
+    <span class="numeral">i.</span>主控台 Overview
   </button>
-  <button class="nav-btn" onclick="switchTab('smartgate')">
-    <span class="icon">🔐</span>SmartGate
+  <button onclick="switchTab('smartgate')">
+    <span class="numeral">ii.</span>人臉登記 Gate
   </button>
-  <button class="nav-btn" onclick="switchTab('smartcount')">
-    <span class="icon">👁</span>SmartCount
+  <button onclick="switchTab('smartcount')">
+    <span class="numeral">iii.</span>人數點算 Count
   </button>
-  <button class="nav-btn" onclick="switchTab('smartcontrol')">
-    <span class="icon">🎛</span>SmartControl
+  <button onclick="switchTab('smartcontrol')">
+    <span class="numeral">iv.</span>設備控制 Control
   </button>
-  <button class="nav-btn" onclick="switchTab('alerts')">
-    <span class="icon">🚨</span>AlertEngine
+  <button onclick="switchTab('alerts')">
+    <span class="numeral">v.</span>警示記錄 Alerts
   </button>
+  <div class="zone-strip" id="zonePills"></div>
 </nav>
 
-<!-- ═════════════════════════════════════════════════════════════════════════════
-     MAIN CONTENT
-     ═════════════════════════════════════════════════════════════════════════════ -->
+<!-- Main -->
+<main>
 
-<div id="main">
-  <!-- Top Bar -->
-  <div id="topbar">
-    <div class="topbar-left">
+  <!-- ─── TAB 1: DASHBOARD ─── -->
+  <section id="tab-dashboard" class="tab-page active">
+
+    <div class="eyebrow">
+      <h2>今日概況 <em>Daily ledger</em></h2>
+      <span class="kicker" id="eyebrowTime">—</span>
+    </div>
+
+    <div class="figures">
+      <div class="figure">
+        <div class="figure-caption"><span>Free courts</span><span class="zh">場地剩餘</span></div>
+        <div class="figure-value moss" id="kpiFreeCourts">—</div>
+        <div class="figure-note" id="kpiFreeCourtsNote">of — total</div>
+      </div>
+      <div class="figure">
+        <div class="figure-caption"><span>In queue</span><span class="zh">輪候人數</span></div>
+        <div class="figure-value ochre" id="kpiQueue">—</div>
+        <div class="figure-note">waiting to be called</div>
+      </div>
+      <div class="figure">
+        <div class="figure-caption"><span>Active sessions</span><span class="zh">進行中場次</span></div>
+        <div class="figure-value accent" id="kpiSessions">—</div>
+        <div class="figure-note">live on the courts</div>
+      </div>
+      <div class="figure">
+        <div class="figure-caption"><span>Alerts logged</span><span class="zh">警示合計</span></div>
+        <div class="figure-value brick" id="kpiAlerts">—</div>
+        <div class="figure-note">since last reset</div>
+      </div>
+    </div>
+
+    <div class="eyebrow">
+      <h2>場地登記 <em>Zone register</em></h2>
+      <span class="kicker">Ten zones · four units each</span>
+    </div>
+
+    <table class="zone-register">
+      <thead>
+        <tr>
+          <th>場地</th>
+          <th>配置 Allocation</th>
+          <th>佔用率</th>
+          <th class="num">Units</th>
+          <th class="num">Courts</th>
+          <th class="num">Queue</th>
+          <th>狀態</th>
+        </tr>
+      </thead>
+      <tbody id="zoneTableBody"></tbody>
+    </table>
+
+    <div class="footnote">
+      十個場地 × 每場四單位 × 每單位 24.5㎡ = 980㎡，加上動線約 1,274㎡ — 佔橋底空間 31%。
+    </div>
+
+    <div class="eyebrow">
+      <h2>展覽控制台 <em>Exhibition console</em></h2>
+      <span class="kicker">Demonstration only</span>
+    </div>
+    <p class="control-intro" style="margin-bottom:18px;">
+      此面板僅供展示日預演用。在每個場地中模擬選擇運動配置、即時預約或釋放場地，以展現系統如何在真實部署中自動安排。
+    </p>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <button class="btn-danger-soft" onclick="window.demoResetAll()">全部重置 <em style="font-style:italic;margin-left:6px;">Reset all zones</em></button>
+    </div>
+    <div class="demo-grid" id="demoGrid"></div>
+
+    <div class="two-cols" style="margin-top:40px;">
+      <div class="list-block">
+        <h3>進行中場次 <em>Active sessions</em><span class="count" id="sessionsCount">0</span></h3>
+        <div id="sessionList" style="max-height:320px;overflow-y:auto;"></div>
+      </div>
+      <div class="list-block">
+        <h3>輪候列表 <em>Queue</em><span class="count" id="queueCount">0</span></h3>
+        <div id="queueList" style="max-height:320px;overflow-y:auto;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TAB 2: SMARTGATE ─── -->
+  <section id="tab-smartgate" class="tab-page">
+
+    <!-- Wizard progress strip -->
+    <ol class="wiz-progress" id="wizProgress">
+      <li class="wiz-step active" data-step="1">
+        <span class="wiz-num">01</span>
+        <div class="wiz-lbl">
+          <span class="zh">身份識別</span>
+          <span class="en">Identify</span>
+        </div>
+      </li>
+      <li class="wiz-line"></li>
+      <li class="wiz-step" data-step="2">
+        <span class="wiz-num">02</span>
+        <div class="wiz-lbl">
+          <span class="zh">選擇運動</span>
+          <span class="en">Sport</span>
+        </div>
+      </li>
+      <li class="wiz-line"></li>
+      <li class="wiz-step" data-step="3">
+        <span class="wiz-num">03</span>
+        <div class="wiz-lbl">
+          <span class="zh">開始場次</span>
+          <span class="en">Play</span>
+        </div>
+      </li>
+    </ol>
+
+    <!-- ── View: Scan ───────────────────────────────────── -->
+    <div class="wiz-view active" data-view="scan">
+      <header class="wiz-head">
+        <h1 class="wiz-title">請面向鏡頭 <em>Face the camera</em></h1>
+        <p class="wiz-lead">系統會辨認你是誰 — 新朋友可直接登記。</p>
+      </header>
+
+      <div class="gate-stage">
+        <div class="camera-hero">
+          <video id="gateVideo" autoplay playsinline muted></video>
+          <canvas id="gateCanvas"></canvas>
+          <div class="camera-idle" id="cameraIdle">
+            <div class="ring"></div>
+            <div class="hint">按下方按鈕開啟相機</div>
+          </div>
+        </div>
+        <div class="camera-controls">
+          <button class="btn btn-primary btn-lg" onclick="startGateCamera()">開啟相機</button>
+          <button class="btn btn-lg" onclick="gateScan()" id="gateScanBtn">掃描 Scan</button>
+          <button class="btn btn-ghost btn-sm" onclick="stopGateCamera()">關閉</button>
+        </div>
+        <div id="gateScanStatus" class="scan-status"></div>
+      </div>
+    </div>
+
+    <!-- ── View: Register ───────────────────────────────── -->
+    <div class="wiz-view" data-view="register">
+      <header class="wiz-head">
+        <h1 class="wiz-title">新朋友，你好 <em>New here?</em></h1>
+        <p class="wiz-lead">留下姓名與電話 — 下次直接刷臉入場，不用再填。</p>
+      </header>
+
+      <form class="wiz-form" onsubmit="event.preventDefault(); registerUser();">
+        <div class="wiz-field">
+          <label class="label">姓名 Name</label>
+          <input class="inp inp-lg" id="regName" placeholder="陳大文 / Chan Tai Man" autocomplete="off">
+        </div>
+        <div class="wiz-field">
+          <label class="label">電話 Phone</label>
+          <input class="inp inp-lg" id="regPhone" placeholder="9XXX XXXX" autocomplete="off" inputmode="tel">
+        </div>
+        <input type="hidden" id="regFaceId">
+        <div class="wiz-actions">
+          <button type="button" class="btn btn-ghost" onclick="wizGoTo('scan')">← 返回</button>
+          <button type="submit" class="btn btn-primary btn-lg">完成登記 Register →</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── View: Welcome (matched) ──────────────────────── -->
+    <div class="wiz-view" data-view="welcome">
+      <header class="wiz-head">
+        <h1 class="wiz-title">歡迎回來 <em>Welcome back</em></h1>
+      </header>
+
+      <div class="welcome-card">
+        <div class="welcome-name" id="welcomeName">—</div>
+        <div class="welcome-meta" id="welcomeMeta">—</div>
+        <div class="welcome-check">✓ 已識別 · Identified</div>
+
+        <!-- Daily quota readout -->
+        <div class="quota-strip" id="quotaStrip">
+          <div class="quota-row">
+            <span class="quota-label">今日預約額度 · Daily quota</span>
+            <span class="quota-val" id="quotaVal">—</span>
+          </div>
+          <div class="quota-bar"><span id="quotaBar" style="width:0%;"></span></div>
+          <div class="quota-hint" id="quotaHint">每人每日兩小時，每次預約一小時，最後 10 分鐘可延長一次。</div>
+        </div>
+      </div>
+
+      <div class="wiz-actions wiz-actions-center">
+        <button class="btn btn-ghost" onclick="wizGoTo('scan'); stopGateCamera();">不是我，重新掃描</button>
+        <button class="btn btn-primary btn-lg" id="welcomeNextBtn" onclick="goToSportStep()">選擇運動 →</button>
+      </div>
+    </div>
+
+    <!-- ── View: Sport picker ───────────────────────────── -->
+    <div class="wiz-view" data-view="sport">
+      <header class="wiz-head">
+        <h1 class="wiz-title">今日想做什麼運動？ <em>Pick your sport</em></h1>
+        <p class="wiz-lead">選了運動之後，系統會自動為你找合適的場地 — 不必再記哪個 Zone 是什麼。</p>
+      </header>
+
+      <div id="sportQuotaBanner"></div>
+      <div class="sport-grid" id="sportGrid"></div>
+
+      <div class="wiz-actions">
+        <button class="btn btn-ghost" onclick="wizGoTo('welcome')">← 返回</button>
+        <button class="btn btn-quiet btn-sm" onclick="refreshSportAvailability()">重新整理</button>
+      </div>
+    </div>
+
+    <!-- ── View: Outcome (session / queue) ──────────────── -->
+    <div class="wiz-view" data-view="outcome">
+      <div id="outcomeBody"></div>
+      <div class="wiz-actions wiz-actions-center">
+        <button class="btn btn-ghost" onclick="wizRestart()">完成 · 返回首頁</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── TAB 3: SMARTCOUNT ─── -->
+  <section id="tab-smartcount" class="tab-page">
+
+    <div class="eyebrow">
+      <h2>人數點算 <em>Occupancy count</em></h2>
+      <span class="kicker">Computer vision · body count</span>
+    </div>
+
+    <div class="segmented" id="countMode">
+      <button class="active" onclick="setCountMode('camera', event)">攝像頭偵測 Camera</button>
+      <button onclick="setCountMode('demo', event)">模擬模式 Demo</button>
+    </div>
+
+    <div class="count-grid">
       <div>
-        <div class="topbar-title" id="tabTitle">DASHBOARD // 主控大廳</div>
-        <div class="topbar-sub">BridgeSpace AI Community Sports Hub &mdash; Under-Bridge Autonomous Zone</div>
+        <div id="countCameraSection">
+          <div class="count-camera-box">
+            <video id="countVideo" autoplay playsinline muted></video>
+            <canvas id="countCanvas"></canvas>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;">
+            <button class="btn btn-primary" onclick="startCountCamera()">開啟攝像頭</button>
+            <button class="btn btn-quiet" onclick="countCapture()">單幀偵測</button>
+            <button class="btn btn-moss" id="countAutoBtn" onclick="toggleCountAuto()">自動偵測</button>
+            <button class="btn" onclick="stopCountCamera()">關閉</button>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);margin-left:auto;" id="countFps">FPS —</span>
+          </div>
+        </div>
+        <div id="countDemoSection" style="display:none;">
+          <div style="text-align:center;padding:40px 0;">
+            <div class="count-display" id="demoCount">0</div>
+            <div style="color:var(--ink-muted);font-size:11px;margin-top:12px;font-family:var(--mono);letter-spacing:0.14em;text-transform:uppercase;">Simulated count</div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn btn-moss" onclick="demoCountChange(1)">+ 加一</button>
+            <button class="btn btn-brick" onclick="demoCountChange(-1)">− 減一</button>
+            <button class="btn" onclick="demoCountReset()">歸零</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="count-panel">
+          <h4>偵測結果 <em>Detection</em></h4>
+          <div class="count-display" id="countResult">0</div>
+          <div style="text-align:center;color:var(--ink-muted);font-size:10.5px;margin-top:10px;font-family:var(--mono);letter-spacing:0.14em;text-transform:uppercase;">People detected</div>
+        </div>
+
+        <div class="count-panel">
+          <h4>推送至場地 <em>Push to zone</em></h4>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="countPushBtns"></div>
+        </div>
+
+        <div class="count-panel">
+          <h4>偵測框 <em>Bounding boxes</em></h4>
+          <div id="countBoxList" style="max-height:200px;overflow-y:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-muted);"></div>
+        </div>
       </div>
     </div>
-    <div class="zone-pills" id="zonePills"></div>
+  </section>
+
+  <!-- ─── TAB 4: SMARTCONTROL ─── -->
+  <section id="tab-smartcontrol" class="tab-page">
+
+    <div class="eyebrow">
+      <h2>設備控制 <em>Device matrix</em></h2>
+      <span class="kicker">Multi-use sports unit · every zone equipped identically</span>
+    </div>
+
+    <p class="control-intro">
+      每個場地都是「多功能運動盒子」 — 籃球、羽毛球、乒乓球、排球可以任意切換；燈光、閘門、籃框、球網、球台的所有控制都直接對每個場地開放，毋需額外配置。
+    </p>
+
+    <div class="device-grid" id="deviceGrid"></div>
+  </section>
+
+  <!-- ─── TAB 5: ALERTS ─── -->
+  <section id="tab-alerts" class="tab-page">
+
+    <div class="eyebrow">
+      <h2>警示記錄 <em>Alert ledger</em></h2>
+      <span class="kicker">Keep track of what needs attention</span>
+    </div>
+
+    <div class="two-cols">
+      <div>
+        <div class="figures" style="grid-template-columns:repeat(3,1fr);margin-bottom:28px;">
+          <div class="figure">
+            <div class="figure-caption"><span>Critical</span><span class="zh">緊急</span></div>
+            <div class="figure-value brick" id="alertCrit">0</div>
+          </div>
+          <div class="figure">
+            <div class="figure-caption"><span>Warning</span><span class="zh">警告</span></div>
+            <div class="figure-value ochre" id="alertWarn">0</div>
+          </div>
+          <div class="figure">
+            <div class="figure-caption"><span>Info</span><span class="zh">資訊</span></div>
+            <div class="figure-value accent" id="alertInfo">0</div>
+          </div>
+        </div>
+
+        <div class="list-block">
+          <h3>WhatsApp 測試 <em>WhatsApp test</em></h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+            <div>
+              <label class="label">Zone</label>
+              <select class="inp" id="waZone">
+                <option value="A">Zone A</option><option value="B">Zone B</option>
+                <option value="C">Zone C</option><option value="D">Zone D</option>
+                <option value="E">Zone E</option><option value="F">Zone F</option>
+                <option value="G">Zone G</option><option value="H">Zone H</option>
+                <option value="I">Zone I</option><option value="J">Zone J</option>
+              </select>
+            </div>
+            <div>
+              <label class="label">姓名</label>
+              <input class="inp" id="waUser" value="Demo User" placeholder="User name">
+            </div>
+            <div>
+              <label class="label">超時分鐘</label>
+              <input class="inp" id="waMinutes" type="number" value="5" min="1">
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn btn-primary" onclick="sendWhatsApp()">發送測試</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="list-block">
+          <h3>警示記錄 <em>Alert log</em></h3>
+          <div id="alertLog" style="max-height:560px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer / status -->
+<footer class="status">
+  <div>
+    <span class="dot offline" id="statusDot"></span>
+    <span id="statusText">後端離線 — Backend offline</span>
   </div>
-
-  <!-- Content Area -->
-  <div id="content">
-
-    <!-- ═════════════════════════════════════════════════════════════════════════
-         TAB 1: DASHBOARD
-         ═════════════════════════════════════════════════════════════════════════ -->
-    <div id="tab-dashboard" class="tab-page active">
-
-      <!-- KPI HUD -->
-      <div class="kpi-row">
-        <div class="kpi">
-          <div class="kpi-label">Free Courts / 場地剩餘</div>
-          <div class="kpi-value green" id="kpiFreeCourts">--</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Queue / 排隊人數</div>
-          <div class="kpi-value amber" id="kpiQueue">--</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Sessions / 活躍場次</div>
-          <div class="kpi-value blue" id="kpiSessions">--</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Alerts / 警報數量</div>
-          <div class="kpi-value red" id="kpiAlerts">--</div>
-        </div>
-      </div>
-
-      <!-- Zone Overview Grid -->
-      <div class="section-label">Zone Overview / 場地總覽</div>
-      <div class="zone-grid" id="zoneGrid"></div>
-
-      <!-- Area Info -->
-      <div class="info-box">
-        10 zones &times; 4 units &times; 24.5&#13217; = 980&#13217; (+ circulation &asymp; 1,274&#13217; &middot; bridge 31%)
-      </div>
-
-      <!-- Demo Console -->
-      <div class="card">
-        <div class="card-title">Demo 控制台 <span class="tag">EXHIBITION</span></div>
-        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-          <button class="btn-danger-lg" onclick="window.demoResetAll()">RESET ALL / 全部重置</button>
-        </div>
-        <div class="demo-grid" id="demoGrid"></div>
-      </div>
-
-      <!-- Sessions + Queue -->
-      <div class="cols-2">
-        <div class="card">
-          <div class="card-title">Active Sessions / 活躍場次</div>
-          <div id="sessionList" style="max-height:280px;overflow-y:auto;"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Queue / 排隊列表</div>
-          <div id="queueList" style="max-height:280px;overflow-y:auto;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═════════════════════════════════════════════════════════════════════════
-         TAB 2: SMARTGATE
-         ═════════════════════════════════════════════════════════════════════════ -->
-    <div id="tab-smartgate" class="tab-page">
-      <div class="mode-toggle" id="gateMode">
-        <button class="active" onclick="setGateMode('face')">人臉識別 Face</button>
-        <button onclick="setGateMode('hkid')">身份證 HKID</button>
-      </div>
-
-      <div class="cols-2">
-        <div>
-          <!-- Camera -->
-          <div class="card">
-            <div class="card-title">Camera Preview / 攝像頭</div>
-            <div class="camera-box">
-              <video id="gateVideo" autoplay playsinline muted></video>
-              <canvas id="gateCanvas"></canvas>
-            </div>
-            <div style="margin-top:10px;display:flex;gap:8px;">
-              <button class="btn btn-accent" onclick="startGateCamera()">開啟攝像頭</button>
-              <button class="btn btn-neon" onclick="gateScan()">Scan / 掃描</button>
-              <button class="btn btn-muted" onclick="stopGateCamera()">關閉</button>
-            </div>
-          </div>
-
-          <!-- Result -->
-          <div class="card" id="gateResult" style="display:none;">
-            <div class="card-title">Scan Result / 識別結果</div>
-            <div id="gateResultContent"></div>
-          </div>
-        </div>
-
-        <div>
-          <!-- Registration Form -->
-          <div class="card" id="gateRegForm" style="display:none;">
-            <div class="card-title">Registration / 新用戶註冊</div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <label class="label">Name / 姓名</label>
-                <input class="inp" id="regName" placeholder="Enter name">
-              </div>
-              <div>
-                <label class="label">Phone / 電話</label>
-                <input class="inp" id="regPhone" placeholder="Enter phone number">
-              </div>
-              <input type="hidden" id="regFaceId">
-              <button class="btn btn-green" onclick="registerUser()">Register / 註冊</button>
-            </div>
-          </div>
-
-          <!-- Zone Select -->
-          <div class="card" id="gateZoneSelect" style="display:none;">
-            <div class="card-title">Select Zone / 選擇場地</div>
-            <div id="gateZones" class="zone-grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));"></div>
-          </div>
-
-          <!-- Session Timer -->
-          <div class="card" id="gateSession" style="display:none;">
-            <div class="card-title">Session Timer / 場次計時</div>
-            <div id="gateSessionInfo"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═════════════════════════════════════════════════════════════════════════
-         TAB 3: SMARTCOUNT
-         ═════════════════════════════════════════════════════════════════════════ -->
-    <div id="tab-smartcount" class="tab-page">
-      <div class="mode-toggle" id="countMode">
-        <button class="active" onclick="setCountMode('camera')">Camera / 攝像頭偵測</button>
-        <button onclick="setCountMode('demo')">Demo / 模擬</button>
-      </div>
-
-      <div class="cols-2">
-        <div>
-          <!-- Camera / Demo area -->
-          <div class="card">
-            <div class="card-title">Detection View / 偵測視窗</div>
-            <div id="countCameraSection">
-              <div class="camera-box" style="max-width:100%;">
-                <video id="countVideo" autoplay playsinline muted></video>
-                <canvas id="countCanvas"></canvas>
-              </div>
-              <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <button class="btn btn-accent" onclick="startCountCamera()">開啟攝像頭</button>
-                <button class="btn btn-neon" onclick="countCapture()">單幀偵測</button>
-                <button class="btn btn-green" id="countAutoBtn" onclick="toggleCountAuto()">自動偵測</button>
-                <button class="btn btn-muted" onclick="stopCountCamera()">關閉</button>
-                <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);" id="countFps">FPS: --</span>
-              </div>
-            </div>
-            <div id="countDemoSection" style="display:none;">
-              <div style="text-align:center;padding:30px 0;">
-                <div class="count-display" id="demoCount">0</div>
-                <div style="color:var(--text-muted);font-size:10px;margin-top:8px;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;">Simulated Count</div>
-              </div>
-              <div style="display:flex;gap:8px;justify-content:center;">
-                <button class="btn btn-green" onclick="demoCountChange(1)">+ Add</button>
-                <button class="btn btn-red" onclick="demoCountChange(-1)">- Remove</button>
-                <button class="btn btn-muted" onclick="demoCountReset()">Reset</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <!-- Detection Result -->
-          <div class="card">
-            <div class="card-title">Detection Result / 偵測結果</div>
-            <div class="count-display" id="countResult">0</div>
-            <div style="text-align:center;color:var(--text-muted);font-size:10px;margin:8px 0;font-family:var(--font-mono);letter-spacing:0.1em;text-transform:uppercase;">People Detected</div>
-          </div>
-
-          <!-- Push to Zone -->
-          <div class="card">
-            <div class="card-title">Push to Zone / 推送至場地</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;" id="countPushBtns"></div>
-          </div>
-
-          <!-- Bounding Boxes -->
-          <div class="card">
-            <div class="card-title">Bounding Boxes / 偵測框</div>
-            <div id="countBoxList" style="max-height:200px;overflow-y:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═════════════════════════════════════════════════════════════════════════
-         TAB 4: SMARTCONTROL
-         ═════════════════════════════════════════════════════════════════════════ -->
-    <div id="tab-smartcontrol" class="tab-page">
-      <div class="section-label">IoT Device Matrix / 設備控制矩陣</div>
-      <div class="device-grid" id="deviceGrid"></div>
-    </div>
-
-    <!-- ═════════════════════════════════════════════════════════════════════════
-         TAB 5: ALERTENGINE
-         ═════════════════════════════════════════════════════════════════════════ -->
-    <div id="tab-alerts" class="tab-page">
-      <div class="cols-2">
-        <div>
-          <!-- Alert Stats -->
-          <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
-            <div class="kpi">
-              <div class="kpi-label">Critical / 緊急</div>
-              <div class="kpi-value red" id="alertCrit">0</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">Warning / 警告</div>
-              <div class="kpi-value amber" id="alertWarn">0</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">Info / 資訊</div>
-              <div class="kpi-value blue" id="alertInfo">0</div>
-            </div>
-          </div>
-
-          <!-- WhatsApp Demo -->
-          <div class="card">
-            <div class="card-title">WhatsApp Demo</div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <label class="label">Zone ID</label>
-                <select class="inp" id="waZone">
-                  <option value="A">Zone A</option><option value="B">Zone B</option>
-                  <option value="C">Zone C</option><option value="D">Zone D</option>
-                  <option value="E">Zone E</option><option value="F">Zone F</option>
-                  <option value="G">Zone G</option><option value="H">Zone H</option>
-                  <option value="I">Zone I</option><option value="J">Zone J</option>
-                </select>
-              </div>
-              <div>
-                <label class="label">User Name</label>
-                <input class="inp" id="waUser" value="Demo User" placeholder="User name">
-              </div>
-              <div>
-                <label class="label">Minutes Over / 超時分鐘</label>
-                <input class="inp" id="waMinutes" type="number" value="5" min="1">
-              </div>
-              <button class="btn btn-accent" onclick="sendWhatsApp()">Send WhatsApp Test / 發送測試</button>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <!-- Alert Log -->
-          <div class="card">
-            <div class="card-title">Alert Log / 警報記錄</div>
-            <div id="alertLog" style="max-height:500px;overflow-y:auto;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /content -->
-
-  <!-- Status Bar -->
-  <div id="statusbar">
-    <div>
-      <span class="status-dot offline" id="statusDot"></span>
-      <span id="statusText">BACKEND OFFLINE</span>
-    </div>
-    <div style="display:flex;gap:16px;align-items:center;">
-      <span id="wsStatus" style="color:var(--text-muted);">WS: ---</span>
-      <span id="statusTime">--:--:--</span>
-    </div>
+  <div style="display:flex;gap:20px;align-items:center;">
+    <span id="wsStatus">WS ···</span>
+    <span id="statusTime">—</span>
   </div>
-</div>
+</footer>
 
-<!-- Toast container -->
 <div id="toastContainer"></div>
 
-<!-- ═════════════════════════════════════════════════════════════════════════════
-     JAVASCRIPT
-     ═════════════════════════════════════════════════════════════════════════════ -->
 <script>
-// ══════════════════════════════════════════════════════════════════════════════
-//  BridgeSpace Dashboard — Cyberpunk HUD Edition
-// ══════════════════════════════════════════════════════════════════════════════
-
 const API = 'http://localhost:8000';
 const WS_URL = 'ws://localhost:8000/ws';
-
-// ── Sport Config (loaded from /zone-config, with fallback) ──────────────────
 
 const SPORT_CONFIG_DEFAULT = {
   '乒乓球': { en: 'Table Tennis', icon: '🏓', unit_cost: 1, duration: 1800, equipment: ['table'] },
@@ -1410,8 +2217,6 @@ let ALLOC_PRESETS = { ...ALLOC_PRESETS_DEFAULT };
 const ZONE_IDS = ['A','B','C','D','E','F','G','H','I','J'];
 const TOTAL_UNITS = 4;
 
-// ── State ───────────────────────────────────────────────────────────────────
-
 let zones = [];
 let sessions = [];
 let queue = [];
@@ -1421,9 +2226,7 @@ let backendOnline = false;
 let ws = null;
 let wsConnected = false;
 
-// ── Toast Notifications ─────────────────────────────────────────────────────
-
-function showToast(msg, duration = 3000) {
+function showToast(msg, duration = 2600) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = 'toast';
@@ -1431,34 +2234,21 @@ function showToast(msg, duration = 3000) {
   container.appendChild(toast);
   setTimeout(() => {
     toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
+    toast.style.transform = 'translateY(6px)';
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, duration);
 }
 
-// ── Tab Switching ───────────────────────────────────────────────────────────
-
-const TAB_TITLES = {
-  dashboard:    'DASHBOARD // 主控大廳',
-  smartgate:    'SMARTGATE // 人臉識別',
-  smartcount:   'SMARTCOUNT // 人數偵測',
-  smartcontrol: 'SMARTCONTROL // IoT 設備',
-  alerts:       'ALERTENGINE // 警報系統',
-};
-
 function switchTab(tab) {
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#sectionNav button').forEach(b => b.classList.remove('active'));
   const page = document.getElementById('tab-' + tab);
   if (page) page.classList.add('active');
-  const btns = document.querySelectorAll('.nav-btn');
+  const btns = document.querySelectorAll('#sectionNav button');
   const idx = ['dashboard','smartgate','smartcount','smartcontrol','alerts'].indexOf(tab);
   if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
-  document.getElementById('tabTitle').textContent = TAB_TITLES[tab] || tab;
 }
-
-// ── API Helpers ─────────────────────────────────────────────────────────────
 
 async function apiFetch(path, opts = {}) {
   try {
@@ -1477,20 +2267,15 @@ async function apiFetch(path, opts = {}) {
   }
 }
 
-// ── Zone Config Fetch ───────────────────────────────────────────────────────
-
 async function loadZoneConfig() {
   try {
     const cfg = await apiFetch('/zone-config');
     if (cfg.sports) SPORT_CONFIG = cfg.sports;
     if (cfg.presets) ALLOC_PRESETS = cfg.presets;
-    console.log('[CONFIG] Zone config loaded:', Object.keys(ALLOC_PRESETS).length, 'presets');
   } catch (e) {
-    console.warn('[CONFIG] Using fallback config:', e.message);
+    console.warn('[config] using fallback:', e.message);
   }
 }
-
-// ── Data Fetching ───────────────────────────────────────────────────────────
 
 async function fetchAll() {
   try {
@@ -1523,12 +2308,9 @@ function setBackendStatus(online) {
   backendOnline = online;
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusText');
-  dot.className = 'status-dot ' + (online ? 'online' : 'offline');
-  txt.textContent = online ? 'BACKEND ONLINE' : 'BACKEND OFFLINE';
-  document.getElementById('statusTime').textContent = new Date().toLocaleTimeString('en-GB');
+  dot.className = 'dot ' + (online ? 'online' : 'offline');
+  txt.textContent = online ? '後端連線中 — Backend online' : '後端離線 — Backend offline';
 }
-
-// ── WebSocket ───────────────────────────────────────────────────────────────
 
 function connectWS() {
   if (ws && ws.readyState <= 1) return;
@@ -1536,28 +2318,24 @@ function connectWS() {
   try {
     ws = new WebSocket(WS_URL);
     ws.onopen = () => {
-      console.log('[WS] Connected');
       wsConnected = true;
-      wsEl.textContent = 'WS: LIVE';
-      wsEl.style.color = 'var(--green)';
+      wsEl.textContent = 'WS · live';
+      wsEl.style.color = 'var(--moss)';
       setBackendStatus(true);
     };
     ws.onmessage = (evt) => {
       try {
         const msg = JSON.parse(evt.data);
         handleWSMessage(msg);
-      } catch (e) { /* ignore parse errors */ }
+      } catch (e) { /* ignore */ }
     };
     ws.onclose = () => {
-      console.log('[WS] Disconnected, reconnecting in 3s...');
       wsConnected = false;
-      wsEl.textContent = 'WS: OFF';
-      wsEl.style.color = 'var(--red)';
+      wsEl.textContent = 'WS · off';
+      wsEl.style.color = 'var(--brick)';
       setTimeout(connectWS, 3000);
     };
-    ws.onerror = () => {
-      ws.close();
-    };
+    ws.onerror = () => ws.close();
   } catch (e) {
     setTimeout(connectWS, 3000);
   }
@@ -1575,11 +2353,7 @@ function handleWSMessage(msg) {
       break;
     case 'occupancy':
       zones = (msg.zones || []).map(parseZoneAlloc);
-      renderZones();
-      renderKPIs();
-      renderZonePills();
-      renderDemoConsole();
-      renderDevices();
+      renderZones(); renderKPIs(); renderZonePills(); renderDemoConsole(); renderDevices();
       break;
     case 'devices':
       devices = msg.state || msg.devices || {};
@@ -1587,13 +2361,11 @@ function handleWSMessage(msg) {
       break;
     case 'sessions':
       sessions = msg.data || [];
-      renderSessions();
-      renderKPIs();
+      renderSessions(); renderKPIs();
       break;
     case 'queue':
       queue = msg.data || [];
-      renderQueue();
-      renderKPIs();
+      renderQueue(); renderKPIs();
       break;
     case 'alert':
       alerts.unshift({
@@ -1601,8 +2373,7 @@ function handleWSMessage(msg) {
         message: msg.message,
         ts: msg.time || new Date().toISOString(),
       });
-      renderAlerts();
-      renderKPIs();
+      renderAlerts(); renderKPIs();
       break;
     case 'called':
       queue = msg.queue || queue;
@@ -1610,10 +2381,6 @@ function handleWSMessage(msg) {
       break;
   }
 }
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  RENDERING
-// ══════════════════════════════════════════════════════════════════════════════
 
 function renderAll() {
   renderKPIs();
@@ -1625,8 +2392,6 @@ function renderAll() {
   renderDevices();
   renderAlerts();
 }
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function allocUnitsUsed(alloc) {
   if (!alloc || !alloc.length) return 0;
@@ -1642,8 +2407,6 @@ function esc(s) {
   return d.innerHTML;
 }
 
-// ── Zone Pills (top bar) ────────────────────────────────────────────────────
-
 function renderZonePills() {
   const el = document.getElementById('zonePills');
   el.innerHTML = zones.map(z => {
@@ -1651,32 +2414,31 @@ function renderZonePills() {
     const used = allocUnitsUsed(alloc);
     const free = TOTAL_UNITS - used;
     const cls = z.status === 'full' ? 'full' : z.status === 'busy' ? 'busy' : 'open';
-    return `<span class="zone-pill ${cls}">Z${esc(z.id)} ${free}/${TOTAL_UNITS}</span>`;
+    return `<span class="zone-pill ${cls}">${esc(z.id)} ${free}/${TOTAL_UNITS}</span>`;
   }).join('');
 }
-
-// ── KPIs ────────────────────────────────────────────────────────────────────
 
 function renderKPIs() {
   let totalCourts = 0, usedCourts = 0;
   zones.forEach(z => {
     totalCourts += z.courts || 0;
-    const zoneSessions = sessions.filter(s => s.zone_id === z.id);
-    usedCourts += zoneSessions.length;
+    usedCourts += sessions.filter(s => s.zone_id === z.id).length;
   });
   animateCounter('kpiFreeCourts', totalCourts - usedCourts);
+  document.getElementById('kpiFreeCourtsNote').textContent = `of ${totalCourts} total`;
 
   const queueCount = (queue || []).filter(q => q.status === 'waiting').length;
   animateCounter('kpiQueue', queueCount);
   animateCounter('kpiSessions', sessions.length);
   animateCounter('kpiAlerts', alerts.length);
+  document.getElementById('sessionsCount').textContent = sessions.length;
+  document.getElementById('queueCount').textContent = queueCount;
 }
 
 function animateCounter(id, target) {
   const el = document.getElementById(id);
   const current = parseInt(el.textContent) || 0;
-  if (current === target) return;
-  // Quick counter animation
+  if (current === target) { el.textContent = target; return; }
   const diff = target - current;
   const steps = Math.min(Math.abs(diff), 10);
   const stepSize = diff / steps;
@@ -1692,59 +2454,44 @@ function animateCounter(id, target) {
   }, 40);
 }
 
-// ── Zone Overview Grid ──────────────────────────────────────────────────────
-
 function renderZones() {
-  const el = document.getElementById('zoneGrid');
+  const el = document.getElementById('zoneTableBody');
   el.innerHTML = zones.map(z => {
     const alloc = z.allocation || [];
     const used = allocUnitsUsed(alloc);
     const pct = Math.min((used / TOTAL_UNITS) * 100, 100);
-    const barColor = pct >= 100 ? 'var(--red)' : pct >= 75 ? 'var(--amber)' : 'var(--green)';
-    const barShadow = pct >= 100 ? '0 0 8px rgba(255,51,102,0.4)' : pct >= 75 ? '0 0 8px rgba(255,170,0,0.3)' : '0 0 8px rgba(0,255,136,0.3)';
+    const barColor = pct >= 100 ? 'var(--brick)' : pct >= 75 ? 'var(--ochre)' : 'var(--moss)';
 
-    // Allocation tags
     const allocHTML = alloc.filter(a => a.count > 0).map(a => {
       const cfg = SPORT_CONFIG[a.sport] || {};
-      return `<span class="alloc-tag">${cfg.icon || ''} ${esc(a.sport)} &times;${a.count}</span>`;
-    }).join('') || '<span style="color:var(--text-muted);font-size:10px;font-family:var(--font-mono);">UNCONFIGURED</span>';
+      return `<span class="z-sport">${cfg.icon || ''} ${esc(a.sport)} ×${a.count}</span>`;
+    }).join('') || '<span style="font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);">未配置</span>';
 
-    // Zone sessions / queue
     const zoneSessions = sessions.filter(s => s.zone_id === z.id).length;
     const zoneQueue = (queue || []).filter(q => q.zone_id === z.id && q.status === 'waiting').length;
-
     const statusCls = z.status === 'full' ? 'full' : z.status === 'busy' ? 'busy' : 'open';
-    const statusLabel = z.status === 'full' ? 'FULL' : z.status === 'busy' ? 'BUSY' : 'OPEN';
-
-    // Primary sport icon for background
-    const primaryIcon = alloc.length > 0 && SPORT_CONFIG[alloc[0].sport]
-      ? SPORT_CONFIG[alloc[0].sport].icon : '';
+    const statusLabel = z.status === 'full' ? '客滿' : z.status === 'busy' ? '繁忙' : '可用';
 
     return `
-      <div class="zone-card">
-        <span class="zone-bg-icon">${primaryIcon}</span>
-        <div class="zone-header">
-          <div>
-            <span class="zone-id">Z${esc(z.id)}</span>
-            <span class="zone-name">${esc(z.name_zh)}</span>
+      <tr>
+        <td>
+          <div class="z-label">
+            <span class="id">${esc(z.id)}</span>
+            <span class="name">${esc(z.name_zh)}</span>
           </div>
-          <span class="zone-status ${statusCls}">${statusLabel}</span>
-        </div>
-        <div class="zone-alloc">${allocHTML}</div>
-        <div class="unit-bar-wrap">
-          <div class="unit-bar" style="width:${pct}%;background:${barColor};box-shadow:${barShadow};"></div>
-        </div>
-        <div class="zone-stats">
-          <span style="color:var(--text-muted);">UNITS ${used}/${TOTAL_UNITS}</span>
-          <span style="color:${zoneSessions >= (z.courts||0) ? 'var(--red)' : 'var(--green)'};">COURTS ${zoneSessions}/${z.courts || 0}</span>
-          <span style="color:${zoneQueue > 0 ? 'var(--amber)' : 'var(--text-muted)'};">Q:${zoneQueue}</span>
-        </div>
-      </div>
+        </td>
+        <td><div class="z-sports">${allocHTML}</div></td>
+        <td>
+          <div class="z-bar"><span style="width:${pct}%;background:${barColor};"></span></div>
+        </td>
+        <td class="num">${used} / ${TOTAL_UNITS}</td>
+        <td class="num" style="color:${zoneSessions >= (z.courts || 0) ? 'var(--brick)' : 'var(--moss)'};">${zoneSessions} / ${z.courts || 0}</td>
+        <td class="num" style="color:${zoneQueue > 0 ? 'var(--ochre)' : 'var(--ink-faint)'};">${zoneQueue}</td>
+        <td><span class="z-status ${statusCls}">${statusLabel}</span></td>
+      </tr>
     `;
   }).join('');
 }
-
-// ── Demo Console ────────────────────────────────────────────────────────────
 
 function renderDemoConsole() {
   const el = document.getElementById('demoGrid');
@@ -1752,12 +2499,10 @@ function renderDemoConsole() {
     const alloc = z.allocation || [];
     const courts = z.courts || 0;
 
-    // Preset buttons
     const presets = Object.keys(ALLOC_PRESETS).map(name =>
-      `<button class="btn btn-xs btn-ghost" onclick="window.demoApplyPreset('${esc(z.id)}','${esc(name)}')">${esc(name)}</button>`
+      `<button class="btn btn-xs btn-quiet" onclick="window.demoApplyPreset('${esc(z.id)}','${esc(name)}')">${esc(name)}</button>`
     ).join('');
 
-    // Court toggle buttons
     const courtBtns = [];
     let courtNum = 1;
     for (const a of alloc) {
@@ -1765,35 +2510,37 @@ function renderDemoConsole() {
       for (let i = 0; i < a.count; i++) {
         const cn = courtNum++;
         const hasSession = sessions.some(s => s.zone_id === z.id && s.court_num === cn);
-        const cls = hasSession ? 'btn-red' : 'btn-green';
-        const label = hasSession ? `${cfg.icon || ''} #${cn} OCC` : `${cfg.icon || ''} #${cn} FREE`;
+        const cls = hasSession ? 'btn-brick' : 'btn-moss';
+        const label = hasSession ? `${cfg.icon || ''} #${cn} 已用` : `${cfg.icon || ''} #${cn} 空閒`;
         courtBtns.push(`<button class="btn btn-xs ${cls}" onclick="window.demoCourtToggle('${esc(z.id)}',${cn},${hasSession})">${label}</button>`);
       }
     }
 
     return `
-      <div class="demo-zone">
-        <div class="demo-zone-header">
-          <span>Z${esc(z.id)} ${esc(z.name_zh)}</span>
-          <span style="font-size:9px;color:var(--text-muted);font-family:var(--font-mono);">${courts} courts</span>
+      <div class="demo-cell">
+        <div class="demo-cell-head">
+          <div>
+            <span class="zid">${esc(z.id)}</span>
+            <span class="zname">${esc(z.name_zh)}</span>
+          </div>
+          <span class="zcourts">${courts} courts</span>
         </div>
         <div class="preset-row">${presets}</div>
         <div class="court-row">${courtBtns.join('')}</div>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-xs btn-accent" onclick="window.demoBookAll('${esc(z.id)}')">全訂 Book All</button>
-          <button class="btn btn-xs btn-muted" onclick="window.demoResetZone('${esc(z.id)}')">重置 Reset</button>
+          <button class="btn btn-xs btn-primary" onclick="window.demoBookAll('${esc(z.id)}')">全部預約</button>
+          <button class="btn btn-xs" onclick="window.demoResetZone('${esc(z.id)}')">重置</button>
         </div>
       </div>
     `;
   }).join('');
 }
 
-// ── Sessions List ───────────────────────────────────────────────────────────
-
 function renderSessions() {
   const el = document.getElementById('sessionList');
+  document.getElementById('sessionsCount').textContent = sessions.length;
   if (!sessions.length) {
-    el.innerHTML = '<div class="empty-state">NO ACTIVE SESSIONS</div>';
+    el.innerHTML = '<div class="empty">尚無進行中場次</div>';
     return;
   }
   el.innerHTML = sessions.map(s => {
@@ -1801,58 +2548,53 @@ function renderSessions() {
     const min = Math.floor(remaining / 60);
     const sec = remaining % 60;
     const timeStr = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-    const statusColor = s.status === 'active' ? 'var(--green)' :
-                        s.status === 'warning' ? 'var(--amber)' :
-                        'var(--red)';
+    const timeCls = s.status === 'overstay' ? 'late' : s.status === 'warning' ? 'warn' : '';
     return `
-      <div class="list-item">
-        <div>
-          <span style="color:var(--accent);font-weight:600;">Z${esc(s.zone_id)}</span>
-          <span style="color:var(--text-muted);margin:0 4px;">#${s.court_num || 1}</span>
-          <span>${esc(s.name || s.user_id || '--')}</span>
+      <div class="row">
+        <div class="left">
+          <span class="zid">${esc(s.zone_id)}</span>
+          <span class="court">#${s.court_num || 1}</span>
+          <span class="name">${esc(s.name || s.user_id || '—')}</span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="color:${statusColor};font-weight:700;font-family:var(--font-head);font-size:12px;letter-spacing:0.04em;">${timeStr}</span>
-          <span style="font-size:9px;color:${statusColor};text-transform:uppercase;letter-spacing:0.04em;">${esc(s.status)}</span>
+        <div>
+          <span class="time ${timeCls}">${timeStr}</span>
+          <span class="badge">${esc(s.status)}</span>
         </div>
       </div>
     `;
   }).join('');
 }
-
-// ── Queue List ──────────────────────────────────────────────────────────────
 
 function renderQueue() {
   const el = document.getElementById('queueList');
   const waiting = (queue || []).filter(q => q.status === 'waiting' || q.status === 'called');
+  document.getElementById('queueCount').textContent = waiting.length;
   if (!waiting.length) {
-    el.innerHTML = '<div class="empty-state">NO QUEUE ENTRIES</div>';
+    el.innerHTML = '<div class="empty">暫無輪候</div>';
     return;
   }
   el.innerHTML = waiting.map(q => {
-    const statusColor = q.status === 'called' ? 'var(--accent)' : 'var(--text-muted)';
     return `
-      <div class="list-item">
-        <div>
-          <span style="color:var(--accent);font-weight:600;">Z${esc(q.zone_id)}</span>
-          <span style="margin:0 4px;color:var(--amber);">#${q.queue_num}</span>
-          <span>${esc(q.name || '--')}</span>
+      <div class="row">
+        <div class="left">
+          <span class="zid">${esc(q.zone_id)}</span>
+          <span class="court">#${q.queue_num}</span>
+          <span class="name">${esc(q.name || '—')}</span>
         </div>
-        <span style="color:${statusColor};text-transform:uppercase;font-size:9px;font-weight:600;letter-spacing:0.04em;">${esc(q.status)}</span>
+        <span class="badge" style="color:${q.status === 'called' ? 'var(--terracotta)' : 'var(--ink-muted)'};">${esc(q.status)}</span>
       </div>
     `;
   }).join('');
 }
 
-// ── Devices ─────────────────────────────────────────────────────────────────
-
-const DEVICE_LABELS = {
-  light: { icon: '💡', zh: '燈光', actions: ['on','off','flash'] },
-  hoop:  { icon: '🏀', zh: '籃框', actions: ['deploy','retract'] },
-  net:   { icon: '🏸', zh: '球網', actions: ['setup','remove'] },
-  table: { icon: '🏓', zh: '球台', actions: ['setup','fold'] },
-  gate:  { icon: '🚪', zh: '閘門', actions: ['open','lock'] },
-};
+// Every zone shows every device (multifunction sports box).
+const DEVICE_ROSTER = [
+  { key: 'light', zh: '燈光',     en: 'Lighting',   actions: [['on','開啟'],['off','關閉'],['flash','警示閃爍']] },
+  { key: 'gate',  zh: '閘門',     en: 'Gate',       actions: [['open','開啟'],['lock','鎖閉']] },
+  { key: 'hoop',  zh: '籃框',     en: 'Hoop',       actions: [['deploy','放下'],['retract','收起']] },
+  { key: 'net',   zh: '球網',     en: 'Net',        actions: [['setup','架設'],['remove','收起']] },
+  { key: 'table', zh: '球台',     en: 'Table',      actions: [['setup','擺設'],['fold','收起']] },
+];
 
 function renderDevices() {
   const el = document.getElementById('deviceGrid');
@@ -1860,41 +2602,47 @@ function renderDevices() {
     const zoneDevices = devices[zid] || {};
     const zone = zones.find(z => z.id === zid);
 
-    const rows = Object.entries(DEVICE_LABELS).map(([dev, info]) => {
-      const state = zoneDevices[dev];
-      if (state === 'n/a' || state === undefined) {
-        if (dev !== 'light' && dev !== 'gate') return '';
-        if (state === undefined) return '';
+    const rows = DEVICE_ROSTER.map(d => {
+      let state = zoneDevices[d.key];
+      if (!state || state === 'n/a') {
+        state = d.key === 'light' ? 'off'
+              : d.key === 'gate'  ? 'locked'
+              : d.key === 'hoop'  ? 'retracted'
+              : 'removed';
       }
-
-      const stateClass = state === 'n/a' ? 'na' : state;
-      const stateLabel = state === 'n/a' ? 'N/A' : state.toUpperCase();
-
-      const btns = state !== 'n/a' ? info.actions.map(a =>
-        `<button class="btn btn-xs btn-ghost" onclick="deviceCmd('${zid}','${dev}','${a}')">${a}</button>`
-      ).join('') : '';
+      const stateLabel = state.charAt(0).toUpperCase() + state.slice(1);
+      const actionBtns = d.actions.map(([act, lbl]) =>
+        `<button class="btn btn-xs btn-quiet" onclick="deviceCmd('${zid}','${d.key}','${act}')">${esc(lbl)}</button>`
+      ).join('');
 
       return `
         <div class="device-row">
-          <div class="device-label">${info.icon} ${info.zh}</div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="device-status ${stateClass}">${stateLabel}</span>
-            <div class="device-btns">${btns}</div>
+          <div class="device-name">
+            <span class="dname">${esc(d.zh)}</span>
+            <span class="dhint">${esc(d.en)}</span>
+          </div>
+          <div class="device-actions">
+            <span class="device-state ${state}">${esc(stateLabel)}</span>
+            ${actionBtns}
           </div>
         </div>
       `;
-    }).filter(Boolean).join('');
+    }).join('');
 
     return `
       <div class="device-zone">
-        <div class="device-zone-title">Z${zid} ${zone ? esc(zone.name_zh) : ''}</div>
-        ${rows || '<div class="empty-state" style="padding:8px;">NO DEVICES</div>'}
+        <div class="device-zone-head">
+          <div>
+            <span class="id">${zid}</span>
+            <span class="name">${zone ? esc(zone.name_zh) : ''}</span>
+          </div>
+          <span class="badge">多功能盒子</span>
+        </div>
+        ${rows}
       </div>
     `;
   }).join('');
 }
-
-// ── Alerts ──────────────────────────────────────────────────────────────────
 
 function renderAlerts() {
   const crit = alerts.filter(a => a.severity === 'critical').length;
@@ -1906,28 +2654,23 @@ function renderAlerts() {
 
   const el = document.getElementById('alertLog');
   if (!alerts.length) {
-    el.innerHTML = '<div class="empty-state">NO ALERTS</div>';
+    el.innerHTML = '<div class="empty">暫無警示記錄</div>';
     return;
   }
   el.innerHTML = alerts.slice(0, 50).map(a => {
     const sev = a.severity || 'info';
-    const ts = a.ts ? new Date(a.ts).toLocaleTimeString('en-GB') : '--';
-    const sevColor = sev === 'critical' ? 'var(--red)' : sev === 'warning' ? 'var(--amber)' : 'var(--accent)';
+    const ts = a.ts ? new Date(a.ts).toLocaleTimeString('zh-HK', { hour12: false }) : '—';
     return `
       <div class="alert-item ${sev}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span style="font-family:var(--font-head);font-weight:600;font-size:9px;text-transform:uppercase;color:${sevColor};letter-spacing:0.06em;">${sev}</span>
+        <div class="alert-head">
+          <span class="alert-sev ${sev}">${esc(sev)}</span>
           <span class="alert-time">${ts}</span>
         </div>
-        <div style="font-size:11px;color:var(--text);">${esc(a.message || '')}</div>
+        <div style="font-size:12.5px;color:var(--ink-soft);">${esc(a.message || '')}</div>
       </div>
     `;
   }).join('');
 }
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  DEMO CONTROLS (on window for onclick access)
-// ══════════════════════════════════════════════════════════════════════════════
 
 window.demoApplyPreset = async function(zid, presetName) {
   const alloc = ALLOC_PRESETS[presetName];
@@ -1937,10 +2680,10 @@ window.demoApplyPreset = async function(zid, presetName) {
       method: 'POST',
       body: JSON.stringify({ allocation: alloc }),
     });
-    showToast(`Z${zid} preset: ${presetName}`);
+    showToast(`${zid} 已套用配置：${presetName}`);
     await fetchAll();
   } catch (e) {
-    showToast(`Error: ${e.message}`);
+    showToast(`錯誤：${e.message}`);
   }
 };
 
@@ -1950,70 +2693,44 @@ window.demoBookAll = async function(zid) {
   const courts = zone.courts || 0;
   const existingSessions = sessions.filter(s => s.zone_id === zid).length;
   const toBook = courts - existingSessions;
-
-  if (toBook <= 0) {
-    showToast(`Z${zid}: All courts occupied`);
-    return;
-  }
-
+  if (toBook <= 0) { showToast(`${zid}:所有場地均已使用`); return; }
   for (let i = 0; i < toBook; i++) {
     try {
-      await apiFetch('/demo/book', {
-        method: 'POST',
-        body: JSON.stringify({ zone_id: zid }),
-      });
-    } catch (e) {
-      console.error(`Book error for ${zid}:`, e.message);
-    }
+      await apiFetch('/demo/book', { method: 'POST', body: JSON.stringify({ zone_id: zid }) });
+    } catch (e) { console.error(e); }
   }
-  showToast(`Z${zid}: Booked ${toBook} courts`);
+  showToast(`${zid}：預約了 ${toBook} 個場地`);
   await fetchAll();
 };
 
 window.demoResetZone = async function(zid) {
   try {
     await apiFetch(`/demo/unbook/${zid}?court_num=0`, { method: 'POST' });
-    showToast(`Z${zid}: All sessions ended`);
+    showToast(`${zid}：場次全部結束`);
     await fetchAll();
-  } catch (e) {
-    showToast(`Reset error: ${e.message}`);
-  }
+  } catch (e) { showToast(`重置錯誤：${e.message}`); }
 };
 
 window.demoResetAll = async function() {
   try {
     await apiFetch('/demo/reset-all', { method: 'POST' });
-    showToast('ALL ZONES RESET');
+    showToast('所有場地已重置');
     await fetchAll();
-  } catch (e) {
-    showToast(`Reset error: ${e.message}`);
-  }
+  } catch (e) { showToast(`重置錯誤：${e.message}`); }
 };
 
 window.demoCourtToggle = async function(zid, courtNum, isOccupied) {
-  if (isOccupied) {
-    try {
+  try {
+    if (isOccupied) {
       await apiFetch(`/demo/unbook/${zid}?court_num=${courtNum}`, { method: 'POST' });
-      showToast(`Z${zid} court #${courtNum}: Session ended`);
-      await fetchAll();
-    } catch (e) {
-      showToast(`Unbook error: ${e.message}`);
+      showToast(`${zid} #${courtNum} 已釋出`);
+    } else {
+      await apiFetch('/demo/book', { method: 'POST', body: JSON.stringify({ zone_id: zid, court_num: courtNum }) });
+      showToast(`${zid} #${courtNum} 已預約`);
     }
-  } else {
-    try {
-      await apiFetch('/demo/book', {
-        method: 'POST',
-        body: JSON.stringify({ zone_id: zid, court_num: courtNum }),
-      });
-      showToast(`Z${zid} court #${courtNum}: Booked`);
-      await fetchAll();
-    } catch (e) {
-      showToast(`Book error: ${e.message}`);
-    }
-  }
+    await fetchAll();
+  } catch (e) { showToast(`錯誤：${e.message}`); }
 };
-
-// ── Device Commands ─────────────────────────────────────────────────────────
 
 async function deviceCmd(zid, device, action) {
   try {
@@ -2021,13 +2738,9 @@ async function deviceCmd(zid, device, action) {
       method: 'POST',
       body: JSON.stringify({ action }),
     });
-    showToast(`Z${zid} ${device}: ${action}`);
-  } catch (e) {
-    showToast(`Device error: ${e.message}`);
-  }
+    showToast(`${zid} · ${device} → ${action}`);
+  } catch (e) { showToast(`設備錯誤:${e.message}`); }
 }
-
-// ── WhatsApp Test ───────────────────────────────────────────────────────────
 
 async function sendWhatsApp() {
   const zone = document.getElementById('waZone').value;
@@ -2038,32 +2751,72 @@ async function sendWhatsApp() {
       method: 'POST',
       body: JSON.stringify({ zone_id: zone, user_name: user, minutes: mins }),
     });
-    showToast(res.message || 'WhatsApp sent');
-  } catch (e) {
-    showToast(`WhatsApp error: ${e.message}`);
-  }
+    showToast(res.message || 'WhatsApp 已發送');
+  } catch (e) { showToast(`WhatsApp 錯誤:${e.message}`); }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  SMARTGATE
-// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+//  SmartGate — Wizard flow: identify → pick sport → play/queue
+//  v2.2 booking rules: 1h session · 2h daily quota · extend only in last 10 min
+// ══════════════════════════════════════════════════════════════════════════
+
+const VIEW_STEP_MAP = {
+  scan: 1, register: 1, welcome: 1,
+  sport: 2,
+  outcome: 3,
+};
 
 let gateStream = null;
 let gateFaceId = null;
 let gateCurrentImage = null;
+let gateUser = null;              // current matched/registered user (+quota)
+let gateAvailability = [];        // cache from /smartgate/available-sports
+let outcomeTickHandle = null;     // setInterval for outcome countdown
+let outcomeTickState = null;      // { session_id, expires_ms, extended, can_extend }
 
-function setGateMode(mode) {
-  document.querySelectorAll('#gateMode button').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+function wizGoTo(view) {
+  document.querySelectorAll('.wiz-view').forEach(v => {
+    v.classList.toggle('active', v.dataset.view === view);
+  });
+  const step = VIEW_STEP_MAP[view] || 1;
+  document.querySelectorAll('#wizProgress .wiz-step').forEach(s => {
+    const sn = parseInt(s.dataset.step);
+    s.classList.remove('active', 'done');
+    if (sn < step) s.classList.add('done');
+    else if (sn === step) s.classList.add('active');
+  });
+  const prog = document.querySelector('.wiz-progress');
+  if (prog) window.scrollTo({ top: prog.offsetTop - 20, behavior: 'smooth' });
+  // Stop any countdown when we leave outcome
+  if (view !== 'outcome') stopOutcomeTick();
+}
+
+function wizRestart() {
+  stopGateCamera();
+  stopOutcomeTick();
+  gateFaceId = null;
+  gateCurrentImage = null;
+  gateUser = null;
+  const st = document.getElementById('gateScanStatus');
+  if (st) st.innerHTML = '';
+  ['regName', 'regPhone'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  wizGoTo('scan');
 }
 
 async function startGateCamera() {
   try {
-    gateStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
-    document.getElementById('gateVideo').srcObject = gateStream;
-    showToast('Camera active');
+    gateStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 1280, height: 960 },
+    });
+    const video = document.getElementById('gateVideo');
+    video.srcObject = gateStream;
+    document.querySelector('.camera-hero').classList.add('live');
+    showToast('相機已開啟');
   } catch (e) {
-    showToast('Camera error: ' + e.message);
+    showToast('相機錯誤：' + e.message);
   }
 }
 
@@ -2071,31 +2824,28 @@ function stopGateCamera() {
   if (gateStream) {
     gateStream.getTracks().forEach(t => t.stop());
     gateStream = null;
-    document.getElementById('gateVideo').srcObject = null;
   }
+  const video = document.getElementById('gateVideo');
+  if (video) video.srcObject = null;
+  const hero = document.querySelector('.camera-hero');
+  if (hero) hero.classList.remove('live');
 }
 
 function captureFrame(video) {
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth || 640;
   canvas.height = video.videoHeight || 480;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL('image/jpeg', 0.85);
 }
 
 async function gateScan() {
   const video = document.getElementById('gateVideo');
-  if (!video.srcObject) {
-    showToast('Please enable camera first');
-    return;
-  }
+  if (!video.srcObject) { showToast('請先開啟相機'); return; }
 
   gateCurrentImage = captureFrame(video);
-  const resultDiv = document.getElementById('gateResult');
-  const contentDiv = document.getElementById('gateResultContent');
-  resultDiv.style.display = 'block';
-  contentDiv.innerHTML = '<div style="color:var(--accent);font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;">SCANNING...</div>';
+  const status = document.getElementById('gateScanStatus');
+  status.innerHTML = '<span class="status-pill scanning">掃描中 · scanning</span>';
 
   try {
     const res = await apiFetch('/smartgate/scan', {
@@ -2103,41 +2853,28 @@ async function gateScan() {
       body: JSON.stringify({ image: gateCurrentImage }),
     });
 
-    if (res.face_location) {
-      drawFaceBox('gateCanvas', video, res.face_location);
-    }
+    if (res.face_location) drawFaceBox('gateCanvas', video, res.face_location);
 
     if (res.matched) {
       gateFaceId = res.face_id;
+      status.innerHTML = '<span class="status-pill match">已識別 · matched</span>';
       try {
-        const user = await apiFetch(`/users/by-face/${res.face_id}`);
-        contentDiv.innerHTML = `
-          <div style="color:var(--green);font-family:var(--font-head);font-size:13px;font-weight:700;margin-bottom:8px;letter-spacing:0.06em;text-shadow:0 0 10px rgba(0,255,136,0.4);">MATCH FOUND</div>
-          <div style="font-size:12px;">Name: <strong style="color:var(--text-bright);">${esc(user.name)}</strong></div>
-          <div style="font-size:12px;color:var(--text-muted);">Phone: ${esc(user.phone)}</div>
-          <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:6px;">Face ID: ${esc(res.face_id)} | Score: ${res.score}</div>
-        `;
-        showGateZoneSelect(user);
+        await loadUserDetail(res.face_id);
+        setTimeout(() => decideNextViewAfterIdentify(), 500);
       } catch (e) {
-        contentDiv.innerHTML = `<div style="color:var(--amber);">Match found but unable to load user data</div>`;
+        status.innerHTML = '<span class="status-pill newface">已配對但無法讀取資料</span>';
       }
     } else if (res.detected) {
       gateFaceId = res.face_id;
-      contentDiv.innerHTML = `
-        <div style="color:var(--amber);font-family:var(--font-head);font-size:13px;font-weight:700;margin-bottom:8px;letter-spacing:0.06em;text-shadow:0 0 10px rgba(255,170,0,0.3);">NEW FACE DETECTED</div>
-        <div style="font-size:11px;color:var(--text-muted);">Please fill the registration form</div>
-      `;
+      status.innerHTML = '<span class="status-pill newface">新人臉，請登記</span>';
       document.getElementById('regFaceId').value = res.face_id;
-      document.getElementById('gateRegForm').style.display = 'block';
-      document.getElementById('gateZoneSelect').style.display = 'none';
+      setTimeout(() => wizGoTo('register'), 500);
     } else {
-      contentDiv.innerHTML = `
-        <div style="color:var(--red);font-family:var(--font-head);font-size:13px;font-weight:700;letter-spacing:0.06em;">NO FACE DETECTED</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${esc(res.message || 'Please face the camera directly')}</div>
-      `;
+      status.innerHTML = `<span class="status-pill noface">未偵測到人臉</span>
+        <div style="margin-top:8px;font-size:12.5px;color:var(--ink-soft);">${esc(res.message || '請面對鏡頭並調整距離。')}</div>`;
     }
   } catch (e) {
-    contentDiv.innerHTML = `<div style="color:var(--red);">Error: ${esc(e.message)}</div>`;
+    status.innerHTML = `<span class="status-pill noface">錯誤：${esc(e.message)}</span>`;
   }
 }
 
@@ -2145,30 +2882,19 @@ function drawFaceBox(canvasId, video, loc) {
   const canvas = document.getElementById(canvasId);
   const vw = video.videoWidth || 640;
   const vh = video.videoHeight || 480;
-  canvas.width = vw;
-  canvas.height = vh;
+  canvas.width = vw; canvas.height = vh;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, vw, vh);
 
-  // Draw main rect with glow
-  ctx.shadowColor = '#00d4ff';
-  ctx.shadowBlur = 12;
-  ctx.strokeStyle = '#00d4ff';
+  ctx.strokeStyle = '#d96b3c';
   ctx.lineWidth = 2;
   ctx.strokeRect(loc.left, loc.top, loc.right - loc.left, loc.bottom - loc.top);
-  ctx.shadowBlur = 0;
 
-  // Corner brackets (HUD style)
-  const sz = 16;
-  ctx.strokeStyle = '#00d4ff';
+  const sz = 18;
   ctx.lineWidth = 3;
-  // Top-left
   ctx.beginPath(); ctx.moveTo(loc.left, loc.top + sz); ctx.lineTo(loc.left, loc.top); ctx.lineTo(loc.left + sz, loc.top); ctx.stroke();
-  // Top-right
   ctx.beginPath(); ctx.moveTo(loc.right - sz, loc.top); ctx.lineTo(loc.right, loc.top); ctx.lineTo(loc.right, loc.top + sz); ctx.stroke();
-  // Bottom-left
   ctx.beginPath(); ctx.moveTo(loc.left, loc.bottom - sz); ctx.lineTo(loc.left, loc.bottom); ctx.lineTo(loc.left + sz, loc.bottom); ctx.stroke();
-  // Bottom-right
   ctx.beginPath(); ctx.moveTo(loc.right - sz, loc.bottom); ctx.lineTo(loc.right, loc.bottom); ctx.lineTo(loc.right, loc.bottom - sz); ctx.stroke();
 }
 
@@ -2177,121 +2903,434 @@ async function registerUser() {
   const phone = document.getElementById('regPhone').value.trim();
   const faceId = document.getElementById('regFaceId').value;
 
-  if (!name || !phone) {
-    showToast('Please fill name and phone');
-    return;
-  }
+  if (!name || !phone) { showToast('請填寫姓名與電話'); return; }
 
   try {
     await apiFetch('/users/register', {
       method: 'POST',
       body: JSON.stringify({ name, phone, face_id: faceId }),
     });
-
     if (gateCurrentImage) {
       await apiFetch('/smartgate/save_face', {
         method: 'POST',
         body: JSON.stringify({ face_id: faceId, image: gateCurrentImage }),
       });
     }
-
-    document.getElementById('gateRegForm').style.display = 'none';
-    document.getElementById('gateResultContent').innerHTML = `
-      <div style="color:var(--green);font-family:var(--font-head);font-size:13px;font-weight:700;letter-spacing:0.06em;text-shadow:0 0 10px rgba(0,255,136,0.4);">REGISTERED</div>
-      <div style="font-size:12px;margin-top:6px;">Welcome ${esc(name)}! Please select a zone.</div>
-    `;
-
-    const user = await apiFetch(`/users/by-face/${faceId}`);
-    showGateZoneSelect(user);
+    await loadUserDetail(faceId);
+    decideNextViewAfterIdentify(/* newly registered */ true);
   } catch (e) {
-    showToast(`Registration error: ${e.message}`);
+    showToast(`登記失敗：${e.message}`);
   }
 }
 
-function showGateZoneSelect(user) {
-  document.getElementById('gateZoneSelect').style.display = 'block';
-  const el = document.getElementById('gateZones');
-  el.innerHTML = zones.map(z => {
-    const alloc = z.allocation || [];
-    const courts = z.courts || 0;
-    const zoneSessions = sessions.filter(s => s.zone_id === z.id).length;
-    const free = courts - zoneSessions;
-    const allocText = alloc.filter(a => a.count > 0).map(a => {
-      const cfg = SPORT_CONFIG[a.sport] || {};
-      return `${cfg.icon}${a.count}`;
-    }).join(' ');
+// ── User detail + quota ─────────────────────────────────────────────────
 
+async function loadUserDetail(faceIdOrUserId) {
+  // faceIdOrUserId: accept either a face_id (fresh scan) or an existing user id
+  let userRec;
+  try {
+    userRec = await apiFetch(`/users/by-face/${faceIdOrUserId}`);
+  } catch (e) {
+    // Might already be a user_id — try direct fetch
+    userRec = { id: faceIdOrUserId };
+  }
+  const detail = await apiFetch(`/smartgate/user/${userRec.id}`);
+  gateUser = detail;
+  updateWelcomeCard(detail);
+  return detail;
+}
+
+function updateWelcomeCard(detail) {
+  document.getElementById('welcomeName').textContent = detail.name || '—';
+  const metaBits = [];
+  if (detail.phone) metaBits.push(detail.phone);
+  if (detail.face_id) metaBits.push(`Face ${String(detail.face_id).slice(0, 8)}`);
+  document.getElementById('welcomeMeta').textContent = metaBits.join(' · ') || '—';
+
+  const q = detail.quota || {};
+  const used = q.used_minutes ?? 0;
+  const max = q.max_minutes ?? 120;
+  const remain = q.remaining_minutes ?? (max - used);
+  const pct = Math.min(100, Math.round((used / max) * 100));
+
+  const valEl = document.getElementById('quotaVal');
+  valEl.innerHTML = `${remain} <em>/ ${max} min</em>`;
+
+  const bar = document.getElementById('quotaBar');
+  const barWrap = bar.parentElement;
+  bar.style.width = `${pct}%`;
+  barWrap.classList.remove('low', 'empty');
+  if (remain <= 0)       barWrap.classList.add('empty');
+  else if (remain < 60)  barWrap.classList.add('low');
+
+  const hint = document.getElementById('quotaHint');
+  hint.classList.remove('warn', 'stop');
+  const canBookNew = q.can_book_new !== false
+    && !detail.active_session
+    && remain >= 60;
+
+  if (detail.active_session) {
+    hint.textContent = `你已有進行中場次 — Zone ${detail.active_session.zone_id} 第 ${detail.active_session.court_num} 場。要多一小時請於最後 10 分鐘延長。`;
+    hint.classList.add('warn');
+  } else if (!canBookNew) {
+    hint.textContent = '你今日已完成本日的一次預約 — 每人每日只可預約一次，明天再來！';
+    hint.classList.add('stop');
+  } else {
+    hint.textContent = '每人每日可預約一次（一小時），於場次最後 10 分鐘可選擇延長多一小時。';
+  }
+
+  // Primary CTA on welcome — disable & relabel when not bookable
+  const cta = document.getElementById('welcomeNextBtn');
+  if (cta) {
+    if (detail.active_session) {
+      cta.textContent = '查看我的場次 →';
+      cta.disabled = false;
+    } else if (!canBookNew) {
+      cta.textContent = '今日已用完';
+      cta.disabled = true;
+    } else {
+      cta.textContent = '選擇運動 →';
+      cta.disabled = false;
+    }
+  }
+}
+
+function decideNextViewAfterIdentify(justRegistered) {
+  if (!gateUser) { wizGoTo('welcome'); return; }
+  // Welcome card is ready either way — stop at welcome so user sees their status.
+  wizGoTo('welcome');
+  // If they have an active session, pre-render outcome too so that
+  // clicking '查看我的場次' in welcome is a no-op UI transition.
+  if (gateUser.active_session) {
+    renderActiveSessionOutcome(gateUser.active_session);
+  }
+}
+
+// ── Sport picker ─────────────────────────────────────────────────────────
+
+async function goToSportStep() {
+  // If user has active session, show outcome directly rather than sport picker
+  if (gateUser && gateUser.active_session) {
+    renderActiveSessionOutcome(gateUser.active_session);
+    wizGoTo('outcome');
+    return;
+  }
+  // If they can't book a new session today (quota used / already booked once)
+  if (gateUser && gateUser.quota && gateUser.quota.can_book_new === false) {
+    renderQuotaExhausted(gateUser.quota);
+    wizGoTo('outcome');
+    return;
+  }
+  wizGoTo('sport');
+  await refreshSportAvailability();
+}
+
+async function refreshSportAvailability() {
+  const grid = document.getElementById('sportGrid');
+  grid.innerHTML = '<div class="empty">正在查詢可用運動 …</div>';
+  try {
+    const res = await apiFetch('/smartgate/available-sports');
+    gateAvailability = res.sports || [];
+    renderSportGrid();
+  } catch (e) {
+    grid.innerHTML = `<div class="empty">無法讀取運動資訊：${esc(e.message)}</div>`;
+  }
+}
+
+function renderSportGrid() {
+  const grid = document.getElementById('sportGrid');
+  const banner = document.getElementById('sportQuotaBanner');
+  banner.innerHTML = '';
+
+  const canBookNew = gateUser && gateUser.quota
+    ? gateUser.quota.can_book_new !== false && !gateUser.active_session
+    : true;
+
+  if (!canBookNew) {
+    banner.innerHTML = `<div class="quota-banner stop">
+      你今日已完成本日的一次預約 — 每人每日只可預約一次，明天再來！
+    </div>`;
+  }
+
+  if (!gateAvailability.length) {
+    grid.innerHTML = '<div class="empty">暫時沒有運動資料</div>';
+    return;
+  }
+
+  const blocked = !canBookNew;
+
+  grid.innerHTML = gateAvailability.map(s => {
+    let cls, ribbon, verdictBig, verdictSub;
+    if (s.verdict === 'ready') {
+      cls = 'ready';
+      ribbon = '<span class="sport-ribbon ready">即時可用</span>';
+      verdictBig = `${s.walk_in_free} 場`;
+      verdictSub = '可即時進場';
+    } else if (s.verdict === 'reconfigurable') {
+      cls = 'recon';
+      ribbon = '<span class="sport-ribbon recon">智能重配</span>';
+      verdictBig = '系統佈置';
+      verdictSub = `將由空閒場地即時配置 (${s.empty_zones_available} 個可用)`;
+    } else {
+      cls = 'queue';
+      ribbon = '<span class="sport-ribbon queue">須輪候</span>';
+      verdictBig = `#${s.queue_depth + 1}`;
+      verdictSub = `前面有 ${s.queue_depth} 人`;
+    }
+    const disabledAttr = blocked ? 'disabled' : '';
+    const disabledCls = blocked ? 'disabled' : '';
     return `
-      <div class="zone-card" style="cursor:pointer;text-align:center;padding:10px;" onclick="gateSelectZone('${esc(z.id)}','${esc(user.face_id || gateFaceId)}')">
-        <div class="zone-id" style="font-size:22px;">Z${esc(z.id)}</div>
-        <div style="font-size:10px;color:var(--text-muted);margin:4px 0;">${allocText}</div>
-        <div style="font-family:var(--font-mono);font-size:11px;color:${free > 0 ? 'var(--green)' : 'var(--red)'};">${free}/${courts} free</div>
-      </div>
+      <button class="sport-card ${cls} ${disabledCls}" onclick="pickSport('${esc(s.sport)}')" type="button" ${disabledAttr}>
+        ${ribbon}
+        <span class="sport-icon">${s.icon}</span>
+        <span class="sport-name">${esc(s.sport)}</span>
+        <span class="sport-en">${esc(s.en)} · ${s.duration_min} min</span>
+        <div class="sport-verdict">
+          <span class="big">${esc(verdictBig)}</span>
+          <span>${esc(verdictSub)}</span>
+        </div>
+      </button>
     `;
   }).join('');
 }
 
-window.gateSelectZone = async function(zid, faceId) {
-  try {
-    const user = await apiFetch(`/users/by-face/${faceId}`);
-    const qRes = await apiFetch('/queue/join', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: user.id, zone_id: zid }),
-    });
+window.pickSport = async function(sport) {
+  if (!gateUser) {
+    showToast('請先完成身份識別');
+    wizGoTo('scan');
+    return;
+  }
+  document.querySelectorAll('.sport-card').forEach(c => c.classList.add('disabled'));
 
-    if (qRes.walk_in) {
-      const sessRes = await apiFetch('/session/enter', {
-        method: 'POST',
-        body: JSON.stringify({ face_id: faceId, zone_id: zid }),
-      });
-      showGateSession(sessRes, zid);
-    } else {
-      document.getElementById('gateSession').style.display = 'block';
-      document.getElementById('gateSessionInfo').innerHTML = `
-        <div style="text-align:center;">
-          <div style="font-family:var(--font-head);font-size:56px;color:var(--amber);font-weight:900;text-shadow:0 0 20px rgba(255,170,0,0.4);">#${qRes.queue_num}</div>
-          <div style="color:var(--text-muted);font-size:10px;margin-top:4px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">Queue Number</div>
-          <div style="margin-top:10px;font-size:12px;">Zone ${esc(zid)} | ${esc(qRes.message || '')}</div>
-        </div>
-      `;
-    }
-    document.getElementById('gateZoneSelect').style.display = 'none';
+  try {
+    const res = await apiFetch('/smartgate/match-sport', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: gateUser.id, sport }),
+    });
+    renderOutcome(res);
+    wizGoTo('outcome');
+    // Refresh user detail so welcome card reflects new quota next time
+    try { await loadUserDetail(gateUser.id); } catch (_) {}
     await fetchAll();
   } catch (e) {
-    showToast(`Zone select error: ${e.message}`);
+    showToast(`匹配失敗：${e.message}`);
+    document.querySelectorAll('.sport-card').forEach(c => c.classList.remove('disabled'));
   }
 };
 
-function showGateSession(sessRes, zid) {
-  document.getElementById('gateSession').style.display = 'block';
-  const mins = sessRes.duration_min || 45;
-  document.getElementById('gateSessionInfo').innerHTML = `
-    <div style="text-align:center;">
-      <div style="font-family:var(--font-head);font-size:56px;color:var(--green);font-weight:900;text-shadow:0 0 20px rgba(0,255,136,0.4);animation:dataPulse 3s infinite;">${mins}:00</div>
-      <div style="color:var(--text-muted);font-size:10px;margin-top:4px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">Session Timer</div>
-      <div style="margin-top:10px;font-size:12px;">Zone ${esc(zid)} | Court #${sessRes.court_num}</div>
-      <div style="margin-top:4px;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">ID: ${esc(sessRes.session_id)}</div>
-      <button class="btn btn-neon" style="margin-top:14px;" onclick="extendSession('${esc(sessRes.session_id)}')">Extend / 延長</button>
+// ── Outcome renderers ────────────────────────────────────────────────────
+
+function formatMMSS(totalSec) {
+  const s = Math.max(0, totalSec | 0);
+  const m = Math.floor(s / 60);
+  const ss = String(s % 60).padStart(2, '0');
+  return `${String(m).padStart(2, '0')}:${ss}`;
+}
+
+function renderOutcome(res) {
+  const outcome = res.outcome || (res.session_id ? 'walk_in' : 'queued');
+  if (outcome === 'walk_in' || outcome === 'reconfigured') {
+    renderSessionOutcome(res, outcome);
+  } else if (outcome === 'already_in_session') {
+    renderActiveSessionOutcome(res);
+  } else if (outcome === 'queued' || outcome === 'already_queued') {
+    renderQueuedOutcome(res);
+  } else {
+    renderGenericOutcome(res);
+  }
+}
+
+function renderSessionOutcome(res, outcome) {
+  const body = document.getElementById('outcomeBody');
+  const cls = outcome === 'reconfigured' ? 'reconfig' : 'win';
+  const kicker = outcome === 'reconfigured'
+    ? '系統已為你重新配置場地 · Auto-reconfigured'
+    : '場地已為你預留 · Walk right in';
+  const notice = outcome === 'reconfigured'
+    ? `<div class="outcome-notice">
+         系統把 <strong>Zone ${esc(res.zone_id)}</strong> 即時改配為 ${esc(res.sport)} 專用 ——
+         設備正在自動調整（球網 / 籃框 / 球台），請在閘門打開後進入。
+       </div>` : '';
+
+  const mins = res.duration_min || 60;
+  body.innerHTML = `
+    <div class="outcome-card ${cls}">
+      <div class="outcome-kicker">${kicker}</div>
+      <div class="outcome-big" id="outcomeTimer">${mins}:00</div>
+      <div class="outcome-caption">session timer · 場次計時</div>
+      <div class="outcome-assignment">
+        <span class="zone">${esc(res.zone_id)}</span>
+        <span class="court">Court #${esc(String(res.court_num))}</span>
+        <span class="sport">${esc(res.sport)}</span>
+      </div>
+      ${notice}
+      <div class="outcome-extend">
+        <button class="btn btn-quiet" id="extendBtn" onclick="extendSession('${esc(res.session_id)}')">延長一小時 Extend</button>
+        <span class="extend-hint" id="extendHint">最後 10 分鐘才能延長</span>
+      </div>
+      <div class="outcome-countdown" id="outcomeMeta">Session ${esc(res.session_id || '')}</div>
+    </div>
+  `;
+  const expiresMs = res.expires_at
+    ? new Date(res.expires_at).getTime()
+    : Date.now() + mins * 60 * 1000;
+  startOutcomeTick({
+    session_id: res.session_id,
+    expires_ms: expiresMs,
+    extended: 0,
+    can_extend: true,   // may still be time-gated; tick will decide
+  });
+}
+
+function renderActiveSessionOutcome(active) {
+  const body = document.getElementById('outcomeBody');
+  body.innerHTML = `
+    <div class="outcome-card win">
+      <div class="outcome-kicker">你目前的場次 · Current session</div>
+      <div class="outcome-big" id="outcomeTimer">--:--</div>
+      <div class="outcome-caption">session timer · 場次計時</div>
+      <div class="outcome-assignment">
+        <span class="zone">${esc(active.zone_id)}</span>
+        <span class="court">Court #${esc(String(active.court_num))}</span>
+      </div>
+      <div class="outcome-extend">
+        <button class="btn btn-quiet" id="extendBtn" onclick="extendSession('${esc(active.session_id)}')">延長一小時 Extend</button>
+        <span class="extend-hint" id="extendHint">最後 10 分鐘才能延長</span>
+      </div>
+      <div class="outcome-countdown" id="outcomeMeta">Session ${esc(active.session_id || '')}</div>
+    </div>
+  `;
+  const expiresMs = active.expires_at
+    ? new Date(active.expires_at).getTime()
+    : Date.now() + (active.remaining_seconds || 0) * 1000;
+  startOutcomeTick({
+    session_id: active.session_id,
+    expires_ms: expiresMs,
+    extended: active.extended || 0,
+    can_extend: true,
+  });
+}
+
+function renderQueuedOutcome(res) {
+  const body = document.getElementById('outcomeBody');
+  body.innerHTML = `
+    <div class="outcome-card queued">
+      <div class="outcome-kicker">已加入輪候 · Joined queue</div>
+      <div class="outcome-big queue">#${esc(String(res.queue_num))}</div>
+      <div class="outcome-caption">你的輪候號碼</div>
+      <div class="outcome-assignment">
+        <span class="zone">${esc(res.zone_id)}</span>
+        <span class="sport">${esc(res.sport)}</span>
+      </div>
+      <div class="outcome-notice" style="background:var(--terracotta-soft);color:var(--terracotta);border-color:rgba(217,107,60,0.3);">
+        ${esc(res.message || `${res.sport} 暫時滿座。有場地釋出時，系統會透過 WhatsApp 通知你。`)}
+      </div>
     </div>
   `;
 }
 
+function renderQuotaExhausted(q) {
+  const body = document.getElementById('outcomeBody');
+  const remain = q ? q.remaining_minutes : 0;
+  body.innerHTML = `
+    <div class="outcome-card">
+      <div class="outcome-kicker">今日預約額度用盡 · Daily quota reached</div>
+      <div class="outcome-big" style="color:var(--brick);">${esc(String(remain))}</div>
+      <div class="outcome-caption">剩餘分鐘 · minutes left today</div>
+      <div class="outcome-notice" style="background:var(--brick-soft);color:var(--brick);border-color:rgba(192,88,72,0.3);">
+        每人每日兩小時 quota — 明天再來吧。
+      </div>
+    </div>
+  `;
+}
+
+function renderGenericOutcome(res) {
+  const body = document.getElementById('outcomeBody');
+  body.innerHTML = `
+    <div class="outcome-card">
+      <div class="outcome-kicker">未能安排</div>
+      <div class="outcome-caption">${esc(res.message || '請稍後再試')}</div>
+    </div>
+  `;
+}
+
+// ── Outcome countdown ────────────────────────────────────────────────────
+
+function stopOutcomeTick() {
+  if (outcomeTickHandle) {
+    clearInterval(outcomeTickHandle);
+    outcomeTickHandle = null;
+  }
+  outcomeTickState = null;
+}
+
+function startOutcomeTick(state) {
+  stopOutcomeTick();
+  outcomeTickState = state;
+  updateOutcomeTick();
+  outcomeTickHandle = setInterval(updateOutcomeTick, 1000);
+}
+
+function updateOutcomeTick() {
+  if (!outcomeTickState) return;
+  const { expires_ms } = outcomeTickState;
+  const remaining = Math.max(0, Math.floor((expires_ms - Date.now()) / 1000));
+  const timer = document.getElementById('outcomeTimer');
+  if (timer) timer.textContent = formatMMSS(remaining);
+
+  const extendBtn = document.getElementById('extendBtn');
+  const extendHint = document.getElementById('extendHint');
+  if (extendBtn && extendHint) {
+    const canByTime = remaining <= 10 * 60 && remaining > 0;
+    const canByExt  = (outcomeTickState.extended || 0) < 1;
+    const canByQuota = !gateUser || !gateUser.quota
+      || gateUser.quota.used_minutes + 60 <= gateUser.quota.max_minutes;
+
+    if (!canByExt) {
+      extendBtn.disabled = true;
+      extendHint.textContent = '此場次已延長過一次。';
+    } else if (!canByQuota) {
+      extendBtn.disabled = true;
+      extendHint.textContent = '今日預約額度不足以再延一小時。';
+    } else if (!canByTime) {
+      extendBtn.disabled = true;
+      const waitSec = Math.max(0, remaining - 10 * 60);
+      extendHint.textContent = `最後 10 分鐘才能延長 — 還要等 ${formatMMSS(waitSec)}`;
+    } else {
+      extendBtn.disabled = false;
+      extendHint.textContent = `剩餘 ${formatMMSS(remaining)} — 現在可以延長一小時。`;
+    }
+  }
+
+  if (remaining <= 0) {
+    stopOutcomeTick();
+    const meta = document.getElementById('outcomeMeta');
+    if (meta) meta.textContent = '場次已結束。';
+  }
+}
+
 async function extendSession(sid) {
+  if (!sid) return;
   try {
     const res = await apiFetch('/session/extend', {
       method: 'POST',
       body: JSON.stringify({ session_id: sid }),
     });
-    showToast(`Extended! Remaining: ${res.extensions_remaining}`);
+    showToast(res.message || '已延長一小時');
+    // Refresh user detail + re-render outcome with the new expiry
+    try {
+      const detail = await loadUserDetail(gateUser.id);
+      if (detail && detail.active_session) {
+        renderActiveSessionOutcome(detail.active_session);
+      }
+    } catch (_) {}
     await fetchAll();
   } catch (e) {
-    showToast(`Extend error: ${e.message}`);
+    showToast(`延長錯誤：${e.message}`);
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  SMARTCOUNT
-// ══════════════════════════════════════════════════════════════════════════════
+// ── SmartCount ──
 
 let countStream = null;
 let countAutoInterval = null;
@@ -2301,9 +3340,9 @@ let countDemoValue = 0;
 let countFrameCount = 0;
 let countFpsStart = 0;
 
-function setCountMode(mode) {
+function setCountMode(mode, ev) {
   document.querySelectorAll('#countMode button').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (ev && ev.currentTarget) ev.currentTarget.classList.add('active');
   document.getElementById('countCameraSection').style.display = mode === 'camera' ? 'block' : 'none';
   document.getElementById('countDemoSection').style.display = mode === 'demo' ? 'block' : 'none';
 }
@@ -2312,10 +3351,8 @@ async function startCountCamera() {
   try {
     countStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
     document.getElementById('countVideo').srcObject = countStream;
-    showToast('Count camera active');
-  } catch (e) {
-    showToast('Camera error: ' + e.message);
-  }
+    showToast('攝像頭已開啟');
+  } catch (e) { showToast('攝像頭錯誤:' + e.message); }
 }
 
 function stopCountCamera() {
@@ -2329,10 +3366,7 @@ function stopCountCamera() {
 
 async function countCapture() {
   const video = document.getElementById('countVideo');
-  if (!video.srcObject) {
-    showToast('Please enable camera first');
-    return;
-  }
+  if (!video.srcObject) { showToast('請先開啟攝像頭'); return; }
   const image = captureFrame(video);
   try {
     const res = await apiFetch('/smartcount/frame', {
@@ -2343,31 +3377,29 @@ async function countCapture() {
     document.getElementById('countResult').textContent = res.count;
     drawCountBoxes(res.boxes, res.img_w, res.img_h);
     renderCountBoxList(res.boxes);
-  } catch (e) {
-    console.error('SmartCount error:', e);
-  }
+  } catch (e) { console.error('SmartCount error:', e); }
 }
 
 function toggleCountAuto() {
   countAutoRunning = !countAutoRunning;
   const btn = document.getElementById('countAutoBtn');
   if (countAutoRunning) {
-    btn.textContent = 'Stop / 停止偵測';
-    btn.className = 'btn btn-red';
+    btn.textContent = '停止偵測';
+    btn.className = 'btn btn-brick';
     countFrameCount = 0;
     countFpsStart = Date.now();
     countAutoInterval = setInterval(async () => {
       await countCapture();
       countFrameCount++;
       const elapsed = (Date.now() - countFpsStart) / 1000;
-      const fps = elapsed > 0 ? (countFrameCount / elapsed).toFixed(1) : '--';
-      document.getElementById('countFps').textContent = `FPS: ${fps}`;
+      const fps = elapsed > 0 ? (countFrameCount / elapsed).toFixed(1) : '—';
+      document.getElementById('countFps').textContent = `FPS · ${fps}`;
     }, 1000);
   } else {
     btn.textContent = '自動偵測';
-    btn.className = 'btn btn-green';
+    btn.className = 'btn btn-moss';
     clearInterval(countAutoInterval);
-    document.getElementById('countFps').textContent = 'FPS: --';
+    document.getElementById('countFps').textContent = 'FPS —';
   }
 }
 
@@ -2376,8 +3408,7 @@ function drawCountBoxes(boxes, imgW, imgH) {
   const video = document.getElementById('countVideo');
   const vw = video.videoWidth || imgW || 640;
   const vh = video.videoHeight || imgH || 480;
-  canvas.width = vw;
-  canvas.height = vh;
+  canvas.width = vw; canvas.height = vh;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, vw, vh);
 
@@ -2387,54 +3418,44 @@ function drawCountBoxes(boxes, imgW, imgH) {
     const x1 = b.x1 * scaleX, y1 = b.y1 * scaleY;
     const x2 = b.x2 * scaleX, y2 = b.y2 * scaleY;
 
-    // Glow box
-    ctx.shadowColor = '#00d4ff';
-    ctx.shadowBlur = 8;
-    ctx.strokeStyle = '#00d4ff';
+    ctx.strokeStyle = '#d96b3c';
     ctx.lineWidth = 2;
     ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-    ctx.shadowBlur = 0;
 
-    // HUD corners
-    const sz = 8;
-    ctx.strokeStyle = '#00ff88';
+    const sz = 10;
+    ctx.strokeStyle = '#9dbd6c';
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(x1, y1+sz); ctx.lineTo(x1, y1); ctx.lineTo(x1+sz, y1); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x2-sz, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y1+sz); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x1, y2-sz); ctx.lineTo(x1, y2); ctx.lineTo(x1+sz, y2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x2-sz, y2); ctx.lineTo(x2, y2); ctx.lineTo(x2, y2-sz); ctx.stroke();
 
-    // Label
     const label = `#${i+1} ${(b.conf * 100).toFixed(0)}%`;
-    ctx.font = '11px Fira Code, monospace';
+    ctx.font = '11px "IBM Plex Mono", monospace';
     const tw = ctx.measureText(label).width;
-    ctx.fillStyle = 'rgba(0, 212, 255, 0.85)';
+    ctx.fillStyle = 'rgba(217, 107, 60, 0.9)';
     ctx.fillRect(x1, y1 - 18, tw + 8, 18);
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = '#1a1916';
     ctx.fillText(label, x1 + 4, y1 - 5);
   });
 }
 
 function renderCountBoxList(boxes) {
   const el = document.getElementById('countBoxList');
-  if (!boxes.length) {
-    el.innerHTML = '<div class="empty-state" style="padding:8px;">NO DETECTIONS</div>';
-    return;
-  }
+  if (!boxes.length) { el.innerHTML = '<div class="empty">未偵測到目標</div>'; return; }
   el.innerHTML = boxes.map((b, i) =>
-    `<div class="list-item" style="font-size:9px;">
-      <span style="color:var(--accent);font-weight:600;">#${i+1}</span>
-      <span>[${b.x1},${b.y1}]-[${b.x2},${b.y2}]</span>
-      <span style="color:var(--green);">${(b.conf * 100).toFixed(1)}%</span>
+    `<div class="row" style="padding:6px 2px;">
+      <span style="color:var(--terracotta);">#${i+1}</span>
+      <span>[${b.x1},${b.y1}]–[${b.x2},${b.y2}]</span>
+      <span style="color:var(--moss);">${(b.conf * 100).toFixed(1)}%</span>
     </div>`
   ).join('');
 }
 
-// Push to zone buttons
 function initCountPushBtns() {
   const el = document.getElementById('countPushBtns');
   el.innerHTML = ZONE_IDS.map(zid =>
-    `<button class="btn btn-xs btn-ghost" onclick="pushCountToZone('${zid}')">Z${zid}</button>`
+    `<button class="btn btn-xs btn-quiet" onclick="pushCountToZone('${zid}')">${zid}</button>`
   ).join('');
 }
 
@@ -2445,13 +3466,10 @@ async function pushCountToZone(zid) {
       method: 'POST',
       body: JSON.stringify({ zone_id: zid, count }),
     });
-    showToast(`Pushed count ${count} to Z${zid}`);
-  } catch (e) {
-    showToast(`Push error: ${e.message}`);
-  }
+    showToast(`已推送:${zid} ← ${count} 人`);
+  } catch (e) { showToast(`推送錯誤:${e.message}`); }
 }
 
-// Demo mode
 function demoCountChange(delta) {
   countDemoValue = Math.max(0, countDemoValue + delta);
   document.getElementById('demoCount').textContent = countDemoValue;
@@ -2464,25 +3482,27 @@ function demoCountReset() {
   document.getElementById('countResult').textContent = 0;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  INITIALIZATION
-// ══════════════════════════════════════════════════════════════════════════════
+function updateTodayDate() {
+  const now = new Date();
+  const dow = ['日','一','二','三','四','五','六'][now.getDay()];
+  const Y = now.getFullYear();
+  const M = String(now.getMonth() + 1).padStart(2, '0');
+  const D = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('todayDate').textContent = `${Y}.${M}.${D} · 星期${dow}`;
+  document.getElementById('statusTime').textContent = `${hh}:${mm}`;
+  document.getElementById('eyebrowTime').textContent = `${Y}.${M}.${D} · ${hh}:${mm}`;
+}
 
 (async function init() {
-  // Load zone config from backend first
   await loadZoneConfig();
-
   initCountPushBtns();
+  updateTodayDate();
   fetchAll();
   connectWS();
-
-  // Polling fallback every 5 seconds
   setInterval(fetchAll, 5000);
-
-  // Update status bar clock
-  setInterval(() => {
-    document.getElementById('statusTime').textContent = new Date().toLocaleTimeString('en-GB');
-  }, 1000);
+  setInterval(updateTodayDate, 30000);
 })();
 </script>
 </body>

@@ -434,7 +434,7 @@ async def allocate_zone(zone_id: str, data: AllocateRequest):
     conn.commit()
 
     # Update SmartControl equipment
-    smart_ctrl.update_zone_equipment(zone_id, data.allocation)
+    smart_control.update_zone_equipment(zone_id, data.allocation)
 
     all_zones = [dict(r) for r in conn.execute("SELECT * FROM zones").fetchall()]
     conn.close()
@@ -460,6 +460,11 @@ def get_zone_config():
 
 @app.post("/queue/join")
 async def join_queue(data: JoinQueue):
+    # Enforce booking rules up-front: no double-booking / quota
+    ok, msg, _ = session_mgr.check_booking_quota(data.user_id)
+    if not ok:
+        raise HTTPException(400, msg)
+
     conn = get_db()
     existing = conn.execute(
         "SELECT * FROM queue WHERE user_id=? AND zone_id=? AND status IN ('waiting','called')",
@@ -579,6 +584,8 @@ async def enter_zone(data: EnterZone):
 
     queue_id = queue_entry["id"] if queue_entry else data.queue_id
     result = await session_mgr.start_session(user["id"], data.zone_id, queue_id)
+    if not result.get("ok", True):
+        raise HTTPException(400, result.get("message", "無法開始場次"))
     return result
 
 
@@ -629,11 +636,25 @@ async def device_command(zone_id: str, device: str, cmd: DeviceCommand):
                 raise HTTPException(400, f"Unknown light action: {action}")
         elif device == "hoop":
             if action == "deploy":
-                await smart_control.equipment_deploy(zone_id)
+                await smart_control.hoop_deploy(zone_id)
             elif action == "retract":
-                await smart_control.equipment_retract(zone_id)
+                await smart_control.hoop_retract(zone_id)
             else:
                 raise HTTPException(400, f"Unknown hoop action: {action}")
+        elif device == "net":
+            if action == "setup":
+                await smart_control.net_setup(zone_id)
+            elif action == "remove":
+                await smart_control.net_remove(zone_id)
+            else:
+                raise HTTPException(400, f"Unknown net action: {action}")
+        elif device == "table":
+            if action == "setup":
+                await smart_control.table_setup(zone_id)
+            elif action == "fold":
+                await smart_control.table_fold(zone_id)
+            else:
+                raise HTTPException(400, f"Unknown table action: {action}")
         elif device == "gate":
             if action == "open":
                 await smart_control.gate_open(zone_id)
@@ -687,8 +708,9 @@ async def demo_book_court(data: DemoBookRequest):
             conn.close()
             raise HTTPException(400, "All courts occupied")
 
-    # Create demo user + session
-    demo_id = f"DEMO-{data.zone_id}{court}"
+    # Create demo user + session — fresh synthetic id each call so we
+    # never trip the daily quota that real users are bound by.
+    demo_id = f"DEMO-{uuid.uuid4().hex[:6].upper()}"
     face_id = f"demo_{data.zone_id}_{court}_{uuid.uuid4().hex[:6]}"
     try:
         conn.execute(
@@ -698,10 +720,9 @@ async def demo_book_court(data: DemoBookRequest):
     except Exception:
         pass
 
-    alloc_raw = dict(zone).get("allocation") or "[]"
-    alloc = json.loads(alloc_raw) if isinstance(alloc_raw, str) else alloc_raw
-    first_sport = alloc[0]["sport"] if alloc else (zone["current_sport"] or "")
-    duration = SPORT_CONFIG.get(first_sport, {}).get("duration", 2700)
+    # Demo sessions match the production 1-hour window so the UI stays consistent.
+    from session_manager import SESSION_DURATION
+    duration = SESSION_DURATION
 
     sid = str(uuid.uuid4())[:8].upper()
     now = datetime.now()
@@ -1058,6 +1079,331 @@ def smartgate_save_face(data: FaceSaveRequest):
     print(f"[SmartGate] Saved embedding for {data.face_id}, norm={float(np.linalg.norm(embedding)):.4f}, total faces={len(face_db)}")
 
     return {"ok": True, "face_id": data.face_id, "message": f"人臉已保存（128維特徵向量）"}
+
+
+# --- SmartGate: sport-first smart matching ----------------------------------
+
+class SportMatchRequest(BaseModel):
+    user_id: str
+    sport: str
+
+
+def _load_zones_with_counts(conn):
+    """Load zones with active-session and waiting-queue counts."""
+    zones = [dict(r) for r in conn.execute("SELECT * FROM zones").fetchall()]
+    for z in zones:
+        try:
+            z["allocation"] = json.loads(z.get("allocation") or "[]")
+        except Exception:
+            z["allocation"] = []
+        z["_sessions"] = conn.execute(
+            "SELECT COUNT(*) as c FROM sessions WHERE zone_id=? "
+            "AND status IN ('active','warning','expired','overstay')",
+            (z["id"],),
+        ).fetchone()["c"]
+        z["_queue"] = conn.execute(
+            "SELECT COUNT(*) as c FROM queue WHERE zone_id=? "
+            "AND status IN ('waiting','called')",
+            (z["id"],),
+        ).fetchone()["c"]
+    return zones
+
+
+def _zone_has_sport(zone, sport):
+    return any(a.get("sport") == sport and a.get("count", 0) > 0
+               for a in (zone.get("allocation") or []))
+
+
+@app.get("/smartgate/user/{user_id}")
+def smartgate_user_detail(user_id: str):
+    """Return user profile + today's booking quota + any active session.
+
+    Used by the wizard after face scan / registration to decide which view
+    to show next (welcome / existing-session / quota-exhausted).
+    """
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(404, "User not found")
+    user = dict(row)
+
+    active = session_mgr.get_user_active_session(user_id)
+    used = session_mgr.get_user_daily_minutes(user_id)
+    # Import the constant lazily so any value changes propagate.
+    from session_manager import (MAX_DAILY_MINUTES, SESSION_DURATION,
+                                 EXTEND_WINDOW, MAX_EXTENSIONS)
+    remain = max(0, MAX_DAILY_MINUTES - used)
+
+    # If there's an active session, compute remaining time for UI.
+    active_out = None
+    if active:
+        try:
+            expires = datetime.fromisoformat(active["expires_at"])
+            time_left = max(0, int((expires - datetime.now()).total_seconds()))
+        except Exception:
+            time_left = 0
+        active_out = {
+            "session_id": active["id"],
+            "zone_id": active["zone_id"],
+            "court_num": active["court_num"],
+            "expires_at": active["expires_at"],
+            "remaining_seconds": time_left,
+            "extended": active.get("extended", 0),
+            "can_extend": (
+                active.get("extended", 0) < MAX_EXTENSIONS
+                and time_left <= EXTEND_WINDOW
+                and (used + EXTEND_WINDOW // 60) <= MAX_DAILY_MINUTES
+            ),
+            "extend_unlocks_in_seconds": max(0, time_left - EXTEND_WINDOW),
+        }
+
+    return {
+        **user,
+        "quota": {
+            "max_minutes": MAX_DAILY_MINUTES,
+            "used_minutes": used,
+            "remaining_minutes": remain,
+            "session_length_minutes": SESSION_DURATION // 60,
+            "extend_window_minutes": EXTEND_WINDOW // 60,
+            "max_extensions": MAX_EXTENSIONS,
+            "can_book_new": active is None and remain >= SESSION_DURATION // 60,
+        },
+        "active_session": active_out,
+    }
+
+
+@app.get("/smartgate/available-sports")
+def smartgate_available_sports():
+    """Return each sport's current availability across the hub.
+
+    For every sport:
+      - walk_in_free: courts immediately playable (configured + free)
+      - queue_depth:  people waiting in zones configured for this sport
+      - reconfigurable: true if not directly playable but an empty zone can
+                        be reconfigured on-the-fly for this sport
+    """
+    conn = get_db()
+    zones = _load_zones_with_counts(conn)
+    conn.close()
+
+    empty_zones = [z for z in zones if z["_sessions"] == 0 and z["_queue"] == 0]
+
+    result = []
+    for sport, cfg in SPORT_CONFIG.items():
+        walk_in_free = 0
+        queue_depth = 0
+        configured = []
+        for z in zones:
+            if not _zone_has_sport(z, sport):
+                continue
+            configured.append(z["id"])
+            courts = z.get("courts") or 0
+            walk_in_free += max(0, courts - z["_sessions"])
+            queue_depth += z["_queue"]
+
+        reconfigurable = (
+            walk_in_free == 0
+            and len(empty_zones) > 0
+            and f"全{sport}" in ALLOC_PRESETS
+        )
+
+        # availability verdict, easy for UI
+        if walk_in_free > 0:
+            verdict = "ready"
+        elif reconfigurable:
+            verdict = "reconfigurable"
+        else:
+            verdict = "queue_only"
+
+        result.append({
+            "sport": sport,
+            "icon": cfg.get("icon", ""),
+            "en": cfg.get("en", ""),
+            "duration_min": cfg.get("duration", 2700) // 60,
+            "walk_in_free": walk_in_free,
+            "queue_depth": queue_depth,
+            "configured_zones": configured,
+            "reconfigurable": reconfigurable,
+            "empty_zones_available": len(empty_zones),
+            "verdict": verdict,
+        })
+
+    return {"sports": result, "empty_zones": [z["id"] for z in empty_zones]}
+
+
+@app.post("/smartgate/match-sport")
+async def smartgate_match_sport(data: SportMatchRequest):
+    """Smart-match a user to a zone for a given sport.
+
+    Three-tier fallback:
+      1. Walk-in at a configured zone with a free court (pick least-busy).
+      2. Auto-reconfigure an empty zone and walk in.
+      3. Queue at the configured zone with the shortest queue.
+    """
+    sport = data.sport
+    if sport not in SPORT_CONFIG:
+        raise HTTPException(400, f"Unknown sport: {sport}")
+
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id=?", (data.user_id,)).fetchone()
+    if not user:
+        conn.close()
+        raise HTTPException(404, "User not found")
+
+    # ── Booking rules (v2.2): 1 session at a time, 2 h daily quota ─────
+    # If user already has a session, surface that session as the outcome
+    # instead of booking a new one.
+    active = session_mgr.get_user_active_session(user["id"])
+    if active:
+        conn.close()
+        try:
+            expires = datetime.fromisoformat(active["expires_at"])
+            remaining = max(0, int((expires - datetime.now()).total_seconds()))
+        except Exception:
+            remaining = 0
+        from session_manager import (SESSION_DURATION, EXTEND_WINDOW,
+                                     MAX_EXTENSIONS, MAX_DAILY_MINUTES)
+        used = session_mgr.get_user_daily_minutes(user["id"])
+        return {
+            "outcome": "already_in_session",
+            "zone_id": active["zone_id"],
+            "court_num": active["court_num"],
+            "session_id": active["id"],
+            "expires_at": active["expires_at"],
+            "remaining_seconds": remaining,
+            "duration_min": SESSION_DURATION // 60,
+            "sport": data.sport,
+            "extended": active.get("extended", 0),
+            "can_extend": (
+                active.get("extended", 0) < MAX_EXTENSIONS
+                and remaining <= EXTEND_WINDOW
+                and used + EXTEND_WINDOW // 60 <= MAX_DAILY_MINUTES
+            ),
+            "extend_unlocks_in_seconds": max(0, remaining - EXTEND_WINDOW),
+            "message": "你已有進行中場次，每次只能預約一個 —— 下方即是目前場次狀態。",
+        }
+
+    # Daily quota check
+    ok, msg, remain = session_mgr.check_booking_quota(user["id"])
+    if not ok:
+        conn.close()
+        raise HTTPException(400, msg)
+
+    zones = _load_zones_with_counts(conn)
+
+    # ── Tier 1: direct walk-in at a configured zone ─────────────────────
+    candidates = []
+    for z in zones:
+        if not _zone_has_sport(z, sport):
+            continue
+        if z["_queue"] > 0:
+            continue  # don't jump the queue
+        courts = z.get("courts") or 0
+        free = courts - z["_sessions"]
+        if free > 0:
+            candidates.append((z, free))
+
+    if candidates:
+        candidates.sort(key=lambda x: -x[1])  # most free first
+        chosen = candidates[0][0]
+        conn.close()
+        result = await session_mgr.start_session(user["id"], chosen["id"], None)
+        result.update({
+            "outcome": "walk_in",
+            "zone_id": chosen["id"],
+            "zone_name_zh": chosen.get("name_zh", ""),
+            "sport": sport,
+            "auto_reconfigured": False,
+        })
+        return result
+
+    # ── Tier 2: auto-reconfigure an empty zone ──────────────────────────
+    preset = ALLOC_PRESETS.get(f"全{sport}")
+    if preset:
+        empty = [z for z in zones if z["_sessions"] == 0 and z["_queue"] == 0]
+        if empty:
+            # pick the first empty zone (deterministic, user-friendly)
+            target = empty[0]
+            courts = alloc_to_courts(preset)
+            duration = SPORT_CONFIG[sport]["duration"]
+            alloc_json = json.dumps(preset, ensure_ascii=False)
+            conn.execute(
+                "UPDATE zones SET allocation=?, courts=?, current_sport=?, session_duration=? "
+                "WHERE id=?",
+                (alloc_json, courts, sport, duration, target["id"]),
+            )
+            conn.commit()
+            smart_control.update_zone_equipment(target["id"], preset)
+
+            all_zones = [dict(r) for r in conn.execute("SELECT * FROM zones").fetchall()]
+            conn.close()
+            await manager.broadcast({"type": "occupancy", "zones": all_zones})
+
+            result = await session_mgr.start_session(user["id"], target["id"], None)
+            result.update({
+                "outcome": "reconfigured",
+                "zone_id": target["id"],
+                "zone_name_zh": target.get("name_zh", ""),
+                "sport": sport,
+                "auto_reconfigured": True,
+            })
+            return result
+
+    # ── Tier 3: queue at the least-loaded configured zone ───────────────
+    configured = [z for z in zones if _zone_has_sport(z, sport)]
+    if not configured:
+        conn.close()
+        raise HTTPException(
+            400,
+            f"目前無場地配置 {sport}，且無空閒場地可即時重配。請稍後再試。",
+        )
+
+    configured.sort(key=lambda z: (z["_queue"], z["_sessions"]))
+    chosen = configured[0]
+
+    # already in queue? reject
+    existing = conn.execute(
+        "SELECT * FROM queue WHERE user_id=? AND zone_id=? "
+        "AND status IN ('waiting','called')",
+        (user["id"], chosen["id"]),
+    ).fetchone()
+    if existing:
+        conn.close()
+        return {
+            "outcome": "already_queued",
+            "zone_id": chosen["id"],
+            "zone_name_zh": chosen.get("name_zh", ""),
+            "sport": sport,
+            "queue_num": existing["queue_num"],
+            "message": "你已在此區輪候中",
+        }
+
+    last = conn.execute(
+        "SELECT MAX(queue_num) as m FROM queue WHERE zone_id=?",
+        (chosen["id"],),
+    ).fetchone()
+    next_num = (last["m"] or 0) + 1
+    entry_id = str(uuid.uuid4())[:8].upper()
+    conn.execute(
+        "INSERT INTO queue (id, user_id, zone_id, queue_num, joined_at) VALUES (?,?,?,?,?)",
+        (entry_id, user["id"], chosen["id"], next_num,
+         datetime.now().isoformat()),
+    )
+    conn.commit()
+    queue_data = _get_queue_snapshot(conn)
+    conn.close()
+    await manager.broadcast({"type": "queue", "data": queue_data})
+
+    return {
+        "outcome": "queued",
+        "zone_id": chosen["id"],
+        "zone_name_zh": chosen.get("name_zh", ""),
+        "sport": sport,
+        "queue_id": entry_id,
+        "queue_num": next_num,
+        "message": f"{sport} 暫時滿座，已為你登記至 Zone {chosen['id']}，輪候號 {next_num}。",
+    }
 
 
 # --- SmartCount people detection (for dashboard) ----------------------------
