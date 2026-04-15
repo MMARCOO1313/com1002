@@ -3495,6 +3495,14 @@ function updateTodayDate() {
   document.getElementById('eyebrowTime').textContent = `${Y}.${M}.${D} · ${hh}:${mm}`;
 }
 
+// Deep-link support: #smartgate / #smartcontrol / ...
+const VALID_HASH_TABS = ['dashboard','smartgate','smartcount','smartcontrol','alerts'];
+function applyHashRoute() {
+  const h = (location.hash || '').replace('#','').trim();
+  if (VALID_HASH_TABS.includes(h)) switchTab(h);
+}
+window.addEventListener('hashchange', applyHashRoute);
+
 (async function init() {
   await loadZoneConfig();
   initCountPushBtns();
@@ -3503,6 +3511,7 @@ function updateTodayDate() {
   connectWS();
   setInterval(fetchAll, 5000);
   setInterval(updateTodayDate, 30000);
+  applyHashRoute();
 })();
 </script>
 </body>
